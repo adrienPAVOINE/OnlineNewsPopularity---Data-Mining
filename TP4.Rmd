@@ -1,0 +1,111 @@
+---
+title: "TP4"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Question 2 : Chargemetn des données
+```{r}
+D<- read.table("breast-cancer-wisconsin.data",sep=",",na.strings = "?")
+```
+
+
+Question 3
+
+```{r}
+class(D) 
+str(D) 
+head(D) 
+summary(D)
+```
+
+
+3. SEPARATION DES DONNEES EN "TRAIN"  ET "TEST"
+
+Question 4
+```{r}
+missval<-which(complete.cases(D)==F)
+print(missval)
+print(length(missval))
+```
+
+
+Question 5 : 
+
+```{r}
+D<-D[which(complete.cases(D)),]
+```
+
+
+Question 6 : 
+
+```{r}
+X<-D[,c(2:10)]
+y<-D[,11]
+```
+
+
+Question 7 : 
+```{r}
+library(dplyr)
+y<-recode(y, '2' = 0 , '4' = 1)
+```
+
+
+Question 8 : 
+```{r}
+benin<-which(y==0)
+malin<-which(y==1)
+```
+
+
+Question 9 :
+```{r}
+
+train_set <- head(benin,200)
+Xtrain <- X[train_set,]
+ytrain<- y[train_set]
+
+test_set <- c(benin[201:444],malin)
+
+Xtest <- X[test_set,]
+ytest <-y[test_set]
+
+```
+
+
+
+---------------------------------------------- KERNEL PCA -----------------------------------------------------
+
+Question 17 
+
+```{r}
+library(kernlab)
+kernel=rbfdot(sigma=1/8) 
+kernel
+
+```
+
+```{r}
+Ktrain=kernelMatrix(kernel ,X[train_set ,])
+Ktrain
+```
+
+
+Question 18 
+```{r}
+k2=apply(Ktrain ,1,sum) 
+k3=apply(Ktrain ,2,sum) 
+k4=sum(Ktrain) 
+KtrainCent=matrix(0,ncol=n,nrow=n) 
+for (i in 1:n)
+{
+  for (j in 1:n) {
+    KtrainCent[i,j]=Ktrain[i,j]-1/n*k2[i]-1/n*k3[j]+1/n^2*k4 
+  }
+}
+```
+
