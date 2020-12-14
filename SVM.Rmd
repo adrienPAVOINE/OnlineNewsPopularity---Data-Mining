@@ -103,10 +103,7 @@ oc_svm_pred_test <- predict(oc_svm_fit,Xtest,decision.values = TRUE)
 attr(oc_svm_pred_test," decision.values ")
 oc_svm_score_test = -as.numeric(attr(oc_svm_pred_test,"decision.values"))
 ```
-
 ---------------------------------------------- KERNEL Courbe ROC -----------------------------------------------------
-
-
 
 ```{r}
 library(ROCR)
