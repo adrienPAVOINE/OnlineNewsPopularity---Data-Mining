@@ -7,7 +7,7 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Question 2 : Chargemetn des données
+Question 2 : Chargemetn des donn?es
 ```{r}
 D<- read.table("breast-cancer-wisconsin.data",sep=",",na.strings = "?")
 ```
@@ -83,6 +83,7 @@ ytest <-y[test_set]
 Question 17 
 
 ```{r}
+
 library(kernlab)
 kernel=rbfdot(sigma=1/8) 
 kernel
@@ -151,6 +152,28 @@ K=kernelMatrix(kernel ,test2)
 
 
 ```{r}
-K
+
+```
+
+```{r}
+p1 <-( K )
+p2 <-apply(K ,2 , sum )
+p3 <- sum(Ktrain)
+
+```
+```{r}
+
+for ( i in 1: n )
+{
+for ( j in 1: n )
+{
+ps= p1 -2/ n * p2[i] +1/n ^2* p3
+}
+}
+```
+question 24
+```{r}
+
+f4 <- k4
 ```
 
