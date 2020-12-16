@@ -94,11 +94,12 @@ oc_svm_fit <- svm(Xtrain,ytrain,type='one-classification', gamma=1/2)
 
 ```
 
+Question 12
 ```{r}
 oc_svm_pred_test <- predict(oc_svm_fit,Xtest,decision.values = TRUE)
 ```
 
-
+Question 13
 ```{r}
 attr(oc_svm_pred_test," decision.values ")
 oc_svm_score_test = -as.numeric(attr(oc_svm_pred_test,"decision.values"))
@@ -114,5 +115,10 @@ pred_oc_svm = prediction(oc_svm_score_test, y[test_set])
 oc_svm_roc = performance(pred_oc_svm , measure = "tpr" , x.measure= "fpr")
 plot(oc_svm_roc)
 
+```
+
+```{r}
+pred_oc_svm
+oc_svm_roc
 ```
 

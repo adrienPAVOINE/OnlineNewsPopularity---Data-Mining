@@ -90,14 +90,20 @@ kernel
 ```
 
 ```{r}
-Ktrain=kernelMatrix(kernel ,X[train_set ,])
+test<-as.matrix(X[train_set ,])
+Ktrain=kernelMatrix(kernel ,x= test)
 Ktrain
+```
+
+```{r}
+n<- nrow(Ktrain )  #pas sur
 ```
 
 
 Question 18 
 ```{r}
-k2=apply(Ktrain ,1,sum) 
+
+k2=apply(Ktrain,1,sum) 
 k3=apply(Ktrain ,2,sum) 
 k4=sum(Ktrain) 
 KtrainCent=matrix(0,ncol=n,nrow=n) 
@@ -107,5 +113,44 @@ for (i in 1:n)
     KtrainCent[i,j]=Ktrain[i,j]-1/n*k2[i]-1/n*k3[j]+1/n^2*k4 
   }
 }
+```
+
+
+```{r}
+KtrainCent
+```
+
+
+Question 19 
+```{r}
+eigen_KtrainCent<-eigen(KtrainCent)
+```
+
+```{r}
+eigen_KtrainCent
+```
+
+
+Question 20
+```{r}
+s<-80
+A=eigen_KtrainCent$vectors[,1:s]%*%diag(1/sqrt( eigen_KtrainCent$values[1:s]))
+```
+
+
+```{r}
+A
+```
+
+
+Question 21
+```{r}
+test2<-as.matrix(X)
+K=kernelMatrix(kernel ,test2)
+```
+
+
+```{r}
+K
 ```
 
