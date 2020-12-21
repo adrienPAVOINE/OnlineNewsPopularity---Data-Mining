@@ -7,7 +7,7 @@ data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNe
 
 
 ###########################
-#traitements de données
+#traitements de données   ####################################################################
 ###########################
 
 #Suppression d'une ligne avec un ratio de mots unique à 700 + suppression url et timedelta
@@ -15,14 +15,54 @@ data <- data_all[-31038,-c(1:2)]
 summary(data)
 
 
+#Creation d'une variable popularity si >moyenne alors high sinon low
+
+data$popularity <- "NA"
+data$popularity[data$shares < 1400.1] <- "Low"
+data$popularity[data$shares > 1400.1] <- "High"
+
+
+#inversion dummy data pour avoir une variable représentant le jour de la semaine
+
+MultChoiceCondense<-function(vars,indata){
+  tempvar<-matrix(NaN,ncol=1,nrow=length(indata[,1]))
+  dat<-indata[,vars]
+  for (i in 1:length(vars)){
+    for (j in 1:length(indata[,1])){
+      if (dat[j,i]==1) tempvar[j]=i
+    }
+  }
+  return(tempvar)
+}
+
+data$count=1
+data$day_of_week<-MultChoiceCondense(c("weekday_is_monday","weekday_is_tuesday","weekday_is_wednesday","weekday_is_thursday","weekday_is_friday","weekday_is_saturday","weekday_is_sunday"),data)
+data$day_of_week[data$day_of_week == 1] <- "Monday"
+data$day_of_week[data$day_of_week == 2] <- "Tuesday"
+data$day_of_week[data$day_of_week == 3] <- "Wednesday"
+data$day_of_week[data$day_of_week == 4] <- "Thursday"
+data$day_of_week[data$day_of_week == 5] <- "Friday"
+data$day_of_week[data$day_of_week == 6] <- "Saturday"
+data$day_of_week[data$day_of_week == 7] <- "Sunday"
+
+data$theme<-MultChoiceCondense(c("data_channel_is_lifestyle", "data_channel_is_entertainment", "data_channel_is_bus", "data_channel_is_socmed", "data_channel_is_tech", "data_channel_is_world"),data)
+data$theme[data$theme == 1] <- "lifestyle"
+data$theme[data$theme == 2] <- "entertainment"
+data$theme[data$theme == 3] <- "bus"
+data$theme[data$theme == 4] <- "socmed"
+data$theme[data$theme == 5] <- "tech"
+data$theme[data$theme == 6] <- "world"
+
+
 ###########################
-#1ere approche globale
+#1ere approche globale    ####################################################################
 ###########################
 #39644 articles dans la base
 
 #en moyenne 3395 partages par article mais il existe des articles très peu ou très publiés
 summary(data$shares)
 
+correlation<- as.data.frame(cor(data[,-c(60:63)]))
 
 # avec un histogramme on se rend compte que 38 000 articles sont dans la premières classes
 # donc on a à peine 2000 articles qui ont plus de 30 000 partages
@@ -42,7 +82,7 @@ data_inf_30k <- data[which(data$shares<30000), ]
 # on obtient des résultats plus clair, presque la moitié des articles ont entre 1000 et 2000 partages
 a <- ggplot(data_inf_30k, aes(x = shares))
 
-g <- a + geom_histogram(bins = 50, color = "black", fill = "gray") + geom_vline(aes(xintercept = median(shares)), linetype = "dashed", size = 0.6)
+g <- a + geom_histogram(bins = 5, color = "black", fill = "gray") + geom_vline(aes(xintercept = median(shares)), linetype = "dashed", size = 0.6)
 
 ggplotly(g)
 
@@ -54,7 +94,7 @@ print(d['shares'])
 
 
 ###########################
-#statistiques sur les token
+#statistiques sur les token ####################################################################
 ###########################
 
 #mauvaise idée car si les graphs sont plus lisibles on perd l'info sur le nb de partage et de mots
@@ -70,6 +110,52 @@ plot(x=data$n_tokens_content,y=data$shares)
 plot(x=data$n_unique_tokens,y=data$shares)
 
 #a priori pas de grosse corrélation
-corrplot(cor(data[,c(3:5,61)]))
+corrplot(cor(data[,c(1:3,59)]))
 
+
+#########################################
+#statistiques sur les jours de la semaine ####################################################################
+#########################################
+
+
+
+g<-ggplot(data=data, aes(x=day_of_week, y=count)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+ggplotly(g)
+
+g<-ggplot(data=data, aes(x=day_of_week, y=shares)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+ggplotly(g)
+
+ggplot(data=data, aes(x=day_of_week, y=count, fill=popularity)) +
+  geom_bar(stat="identity",position = "fill")
+
+#bcp moins d'articles publiés le wkd mais bcp plus de partages le wkd
+
+
+#########################################
+#statistiques sur les thématiques       ####################################################################
+#########################################
+
+ggplot(data=data, aes(x=theme, y=count)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+#bcp de sans thèmes, mais sinon plus d'articles world et tech
+
+ggplot(data=data, aes(x=theme, y=shares)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+# les articles les plus partagés sont sans thèmes
+
+
+ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
+  geom_bar(stat="identity",position = "fill")
+
+# a contrario les articles sur les thèmes les moins nombreux sont les plus populaires (sans doute car plus originaux)
 
