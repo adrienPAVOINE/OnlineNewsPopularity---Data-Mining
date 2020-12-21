@@ -18,9 +18,20 @@ summary(data)
 #Creation d'une variable popularity si >moyenne alors high sinon low
 
 data$popularity <- "NA"
-data$popularity[data$shares < 1400.1] <- "Low"
-data$popularity[data$shares > 1400.1] <- "High"
 
+#Unpopular
+#Moderatly popular
+#Quite popular
+#Very popular
+
+data$popularity[data$shares < 946.1] <- "Unpopular"
+data$popularity[(data$shares > 946.1 & data$shares < 1400.1) ] <- "Moderatly popular"
+data$popularity[(data$shares > 1400.1 & data$shares < 2800.1)] <- "Quite popular"
+data$popularity[data$shares > 2800.1] <- "Very popular"
+
+data$popularity[data$shares < 1400.1] <- "Low"
+
+data$popularity[data$shares > 1400.1] <- "High"
 
 #inversion dummy data pour avoir une variable représentant le jour de la semaine
 
@@ -89,8 +100,7 @@ ggplotly(g)
 #bon après tout ça on pouvait le savoir grâce au summary (en regardant les quartils)
 
 #a priori pas de grosses corrélation entre une variable et le nombre de partages
-d<-as.data.frame(cor(data))
-print(d['shares'])
+print(correlation['shares'])
 
 
 ###########################
@@ -123,13 +133,13 @@ g<-ggplot(data=data, aes(x=day_of_week, y=count)) +
   geom_bar(stat="identity", fill="steelblue")+
   theme_minimal()
 
-ggplotly(g)
+g
 
 g<-ggplot(data=data, aes(x=day_of_week, y=shares)) +
   geom_bar(stat="identity", fill="steelblue")+
   theme_minimal()
 
-ggplotly(g)
+g
 
 ggplot(data=data, aes(x=day_of_week, y=count, fill=popularity)) +
   geom_bar(stat="identity",position = "fill")
@@ -151,7 +161,7 @@ ggplot(data=data, aes(x=theme, y=shares)) +
   geom_bar(stat="identity", fill="steelblue")+
   theme_minimal()
 
-# les articles les plus partagés sont sans thèmes
+# les articles les plus partagés sont sans thèmes (a virer)
 
 
 ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
@@ -159,3 +169,90 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 
 # a contrario les articles sur les thèmes les moins nombreux sont les plus populaires (sans doute car plus originaux)
 
+#########################################
+#Préparation des echantillions          ####################################################################
+#########################################
+
+
+
+#garder que les données quanti
+data_qt <- data_inf_30k[,-c(61:63)]
+
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(data_inf_30k))
+
+# separation train/test avec une seed
+set.seed(123)
+train_ind <- sample(seq_len(nrow(data_inf_30k)), size = smp_size)
+
+train <- data_qt[train_ind, ]
+test <- data_qt[-train_ind, ]
+
+y_train <- as.matrix(train[,60])
+y_test <- as.matrix(test[,60])
+x_train <- as.matrix(as.matrix(scale(train[,-60],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-60],center = T)))
+
+#########################################
+#Modèle de régression pénalisé          ####################################################################
+#########################################
+
+#Install Package
+install.packages("glmnet")
+
+#Load Library
+library(glmnet)
+
+reg <- glmnet(x_train,y_train,family="binomial",standardize=FALSE,lambda=0)
+
+# Display regression coefficients
+coef(reg)
+
+# prediction sur l'échantillon 
+
+pred<- predict(reg,x_test,type="class")
+
+print(as.data.frame(pred)[1])
+
+
+#c'est nul mdr
+plot(y_test)
+points(pred,col = "red", pch=16)
+
+
+# Model performance metrics
+install.packages("caret")
+library(caret)
+
+data.frame(
+  RMSE = RMSE(pred, y_test),
+  Rsquare = R2(pred, y_test)
+)
+
+#rien de fou, on va faire une selection de variable
+
+# selection de variables vraiment pas folle
+mod <- lm(shares~.,data=data_qt)
+step(mod, data=data_qt,direction="backward")
+
+#########################################
+#Support Vector Machine                 ####################################################################
+#########################################
+
+#Install Package
+install.packages("e1071")
+
+#Load Library
+library(e1071)
+
+
+#test d'un SVM basique
+
+#Regression with SVM
+modelsvm = svm(shares~.,train)
+
+#Predict using SVM regression
+predYsvm = predict(modelsvm, data)
+
+#Overlay SVM Predictions on Scatter Plot
+points(data$X, predYsvm, col = "red", pch=16)
