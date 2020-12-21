@@ -1,0 +1,6 @@
+liste des essais :
+
+- test sans rien -> R2 0.01
+- test en centrant reduction des données données complètes -> R2 0.02
+- test sur les shares < 30k sans centrer/reduire -> R2 0.06
+- test sur les shares < 30k avec centrer/reduire -> R2 0.08

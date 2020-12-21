@@ -17,17 +17,17 @@ summary(data)
 
 #Creation d'une variable popularity si >moyenne alors high sinon low
 
-data$popularity <- "NA"
+data$popularity <- 0
 
 #Unpopular
 #Moderatly popular
 #Quite popular
 #Very popular
 
-data$popularity[data$shares < 946.1] <- "Unpopular"
-data$popularity[(data$shares > 946.1 & data$shares < 1400.1) ] <- "Moderatly popular"
-data$popularity[(data$shares > 1400.1 & data$shares < 2800.1)] <- "Quite popular"
-data$popularity[data$shares > 2800.1] <- "Very popular"
+data$popularity[data$shares < 946.1] <- 1.1#"Unpopular"
+data$popularity[(data$shares > 946.1 & data$shares < 1400.1) ] <- 2.1 #"Moderatly popular"
+data$popularity[(data$shares > 1400.1 & data$shares < 2800.1)] <- 3.1#"Quite popular"
+data$popularity[data$shares > 2800.1] <- 4.1#"Very popular"
 
 data$popularity[data$shares < 1400.1] <- "Low"
 
@@ -176,7 +176,8 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 
 
 #garder que les données quanti
-data_qt <- data_inf_30k[,-c(61:63)]
+data_qt <- data_inf_30k[,-c(59,61:63)]
+data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
 
 # 75% of the sample size
 smp_size <- floor(0.75 * nrow(data_inf_30k))
@@ -185,13 +186,13 @@ smp_size <- floor(0.75 * nrow(data_inf_30k))
 set.seed(123)
 train_ind <- sample(seq_len(nrow(data_inf_30k)), size = smp_size)
 
-train <- data_qt[train_ind, ]
-test <- data_qt[-train_ind, ]
+train <- data_qt2[train_ind, ]
+test <- data_qt2[-train_ind, ]
 
-y_train <- as.matrix(train[,60])
-y_test <- as.matrix(test[,60])
-x_train <- as.matrix(as.matrix(scale(train[,-60],center = T)))
-x_test <- as.matrix(as.matrix(scale(test[,-60],center = T)))
+y_train <- as.matrix(train[,19])
+y_test <- as.matrix(test[,19])
+x_train <- as.matrix(as.matrix(scale(train[,-19],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-19],center = T)))
 
 #########################################
 #Modèle de régression pénalisé          ####################################################################
@@ -203,10 +204,10 @@ install.packages("glmnet")
 #Load Library
 library(glmnet)
 
-reg <- glmnet(x_train,y_train,family="binomial",standardize=FALSE,lambda=0)
+reg <- glmnet(x_train,y_train,standardize=FALSE,lambda=0)
 
 # Display regression coefficients
-coef(reg)
+print(sort(coef(reg)))
 
 # prediction sur l'échantillon 
 
@@ -232,9 +233,32 @@ data.frame(
 #rien de fou, on va faire une selection de variable
 
 # selection de variables vraiment pas folle
-mod <- lm(shares~.,data=data_qt)
+mod <- lm(popularity~.,data=data_qt)
+print(mod)
 step(mod, data=data_qt,direction="backward")
 
+# on va tenter une ACP pour voir les variables qui contribuent le plus
+
+#mise en place de l'acp avec l'option pour centrer r?duire les donn?es
+res.pca <- PCA(data_qt, scale.unit = TRUE, graph = T)
+print(res.pca)
+# graphique ?cras? car 2 individus contribuent tr?s fortement ? la construction de l'axe 2
+
+eig.val <- get_eigenvalue(res.pca) 
+eig.val
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+
+
+var <- get_pca_var(res.pca)
+var
+
+#-> Graphique du Cos2 des variables sur le 1 premier axe : 
+
+fviz_cos2(res.pca, choice = "var", axes=3)
+
+var$coord
+var$cos2
+var$contrib
 #########################################
 #Support Vector Machine                 ####################################################################
 #########################################
