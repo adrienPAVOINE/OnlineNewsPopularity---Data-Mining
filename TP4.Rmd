@@ -91,9 +91,8 @@ kernel
 ```
 
 ```{r}
-test<-as.matrix(X[train_set ,])
-Ktrain=kernelMatrix(kernel ,x= test)
-Ktrain
+mat_trainset<-as.matrix(X[train_set ,])
+Ktrain=kernelMatrix(kernel ,x= mat_trainset)
 ```
 
 ```{r}
@@ -138,14 +137,12 @@ A=eigen_KtrainCent$vectors[,1:s]%*%diag(1/sqrt( eigen_KtrainCent$values[1:s]))
 
 Question 21
 ```{r}
-test2<-as.matrix(X)
-K=kernelMatrix(kernel ,test2)
+matX<-as.matrix(X)
+K=kernelMatrix(kernel ,matX)
 ```
+
 
 Question 22
-```{r}
-
-```
 
 ```{r}
 p1 <-( K )
@@ -156,26 +153,16 @@ p3 <- sum(K)
 
 
 ```{r}
-
-#for ( i in 1: n )
-#{
-#for ( j in 1: n )
-#{
-#ps= p1 -2/ n * p2[i] +1/n ^2* p3
-#  ps[i]= p1[i,i] -2/ n * p2[i] +1/n ^2* p3
-#}
-#}
-```
-
-```{r}
 ps<-NULL
 ```
 
 
 ```{r}
 
-n2<-length(ytest)  #pas sur
-n<-200
+
+n<-683
+
+
 #z<-201
 i<-1
 #for ( i in 1: n2 )
@@ -194,7 +181,9 @@ for (z in test_set )
 question 24
 ```{r}
 #f1<-p2  #a verif 
-f1<- p1
+
+#f1<- p1
+f1<-K[test_set,]
 f2<-apply(K,1,sum) 
 f3<-f2
 #f4 <- k4
@@ -204,8 +193,9 @@ f4<-p3
 fmz --> mat 483*80 
 
 ```{r}
+n2<-length(ytest)  #pas sur
 n<-200
-f<-matrix(0,ncol=s,nrow=n2)
+fl<-matrix(0,ncol=s,nrow=n2)
 for (m in 1:s){
  #z<-201
   i<-0
@@ -213,9 +203,9 @@ for (m in 1:s){
     i<-i+1
     temp<-0
     for (i2 in 1:n){
-     temp <- temp +(A[i2,m]*( f1[z,i2] - (1/n)*f2[i2] - (1/n)*f3[z] + (1/n^2)*f4))
+     temp <- temp +(A[i2,m]*( f1[i2] - (1/n)*f2[i2] - (1/n)*f3[z] + (1/n^2)*f4))
     }
-    f[i,m]<-temp
+    fl[i,m]<-temp
     #z<-z+1
   }
 
@@ -227,7 +217,7 @@ for (m in 1:s){
 QUestion 26 
 
 ```{r}
-kpca_score_test <- ps - apply(f^2,1,sum)
+kpca_score_test <- ps - apply(fl^2,1,sum)
 ```
 
 
@@ -250,10 +240,25 @@ tail(dfroc2)
 ```
 
 ```{r}
+pred_oc_svm = prediction(oc_svm_score_test, y[test_set])
+oc_svm_roc = performance(pred_oc_svm , measure = "tpr" , x.measure= "fpr")
+plot(oc_svm_roc,col="red" )
+
 pred_oc_acp=prediction(kpca_score_test ,ytest)
 oc_svm_acp = performance(pred_oc_acp, measure = "tpr", x.measure
 = "fpr")
-plot(oc_svm_acp)
+plot(oc_svm_acp, add=T)
+
+```
+
+
+```{r}
+
+z<- performance(pred_oc_svm , measure = "auc" )
+z@y.values
+
+z2<-performance(pred_oc_acp, measure = "auc")
+z2@y.values
 
 ```
 
