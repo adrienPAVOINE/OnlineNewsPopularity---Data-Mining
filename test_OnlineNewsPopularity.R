@@ -15,6 +15,7 @@ library(glmnet)
 #import de données
 data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
 
+plot(data$shares)
 
 ###########################
 #traitements de données   ####################################################################
@@ -186,7 +187,7 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 
 #garder que les données quanti
 data_qt <- data[,-c(59,61:63)]
-data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
+#data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
 
 # 75% of the sample size
 smp_size <- floor(0.75 * nrow(data))
@@ -196,7 +197,10 @@ set.seed(123)
 train_ind <- sample(seq_len(nrow(data)), size = smp_size)
 
 train <- data_qt[train_ind, ]
+
 test <- data_qt[-train_ind, ]
+
+train[]
 
 y_train <- as.matrix(train[,59])
 y_test <- as.matrix(test[,59])
@@ -242,7 +246,18 @@ confusionMatrix(factor(pred),factor(y_test))
 
 # modèle ELASTICNET
 
-reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda=0)
+cv.reg <- cv.glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped")
+
+
+plot(cv.reg)
+#The plot displays the cross-validation error according to the log of lambda. The left dashed vertical line indicates that the log of the optimal value of lambda is approximately -6.5, which is the one that minimizes the prediction error
+
+#best value for lambda
+cv.reg$lambda.min
+
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.min)
+reg2 <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.1se)
+
 
 # Display regression coefficients
 print(coef(reg))
@@ -250,10 +265,10 @@ print(coef(reg))
 # prediction sur l'échantillon 
 
 pred<- predict(reg,x_test,type="class")
+pred2 <-predict(reg2,x_test,type="class")
 
 
-
-confusionMatrix(factor(pred),factor(y_test))
+confusionMatrix(factor(pred2),factor(y_test))
 
 
 
@@ -270,11 +285,39 @@ library(e1071)
 
 #test d'un SVM basique
 
+train[-59] <- scale(train[-59],center=T)
+train[,59] <- as.factor(train[,59])
+test[-59] <- scale(test[-59],center=T)
+test[,59] <- as.factor(test[,59])
+
+#avant de lancer le svm il faut absolument réduire le nombre de features sinon le temps d'exécution va etre abominable
+
+
+
 #Regression with SVM
-modelsvm = svm(shares~.,train)
+#modelsvm = svm(popularity~.,train[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)],kernel="radial",type="C-classification")
+
+modelsvm = svm(popularity~.,train,kernel="radial",type="C-classification")
 
 #Predict using SVM regression
-predYsvm = predict(modelsvm, data)
+predYsvm = predict(modelsvm, test[-59])
 
-#Overlay SVM Predictions on Scatter Plot
-points(data$X, predYsvm, col = "red", pch=16)
+
+confusionMatrix(factor(predYsvm),factor(y_test))
+
+
+
+
+# load library
+install.packages("neuralnet")
+library(neuralnet)
+
+# fit neural network
+nn=neuralnet(popularity~.,data=train[,50:59], hidden=2,linear.output = FALSE)
+
+#Predict using Neural Network
+predYnn = compute(nn, test[-59])
+
+print(predYnn)
+
+confusionMatrix(factor(predYnn),factor(y_test))

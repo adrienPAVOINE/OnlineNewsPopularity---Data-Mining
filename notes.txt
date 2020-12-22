@@ -28,6 +28,8 @@ OBJECTIF : prédire la popularité de l'article (recodage de shares), ce qui nou
 #Quite popular >1400 & <2800 shares
 #Very popular >2800 shares
 
+Méthode elasticnet---------------------
+
 - 1er essai glmnet avec 4 classes -> accuracy (0.38), mieux qu'un problème de régression mais presque 60% d'erreur de prédiction
 - différents tests entre les données <30k shares et all -> pas de différences ! on peut travailler sur le dataset complet
 - en regardant la matrice de confusion on se rend compte que bcp de confusions entre les 2 classes intermédiaires
@@ -38,3 +40,12 @@ OBJECTIF : prédire la popularité de l'article (recodage de shares), ce qui nou
 #Very popular >2800 shares
 
 - essai avec glmnet -> accuracy (0.52), bien mieux ! mais reste vraiment perfectible, on va essayer de tuner les paramètres
+- essai avec un lambda= 0.001, même résultat  (trouvé en faisant de la cv sur pleins de valeurs de lambda pour voir la valeur qui minimisait le tx d'erreur)
+- approfondir elasticnet en tunant d'autres paramètres
+
+Méthode SVM---------------------
+
+- prends bcp de temps mais très peu de différences entre lancer le svm sur toutes les données ou avec une feature selection
+- même résultats qu'avec elasticnet 
+
+Méthode NEURAL NETWORK---------------------
