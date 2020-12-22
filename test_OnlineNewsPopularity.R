@@ -2,6 +2,16 @@
 library(corrplot)
 library(ggplot2)
 library(plotly)
+# Model performance metrics
+install.packages("caret")
+library(caret)
+
+
+#Install Package
+install.packages("glmnet")
+
+#Load Library
+library(glmnet)
 #import de données
 data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
 
@@ -17,23 +27,20 @@ summary(data)
 
 #Creation d'une variable popularity si >moyenne alors high sinon low
 
-data$popularity <- 0
+data$popularity <- ""
 
 #Unpopular
 #Moderatly popular
 #Quite popular
 #Very popular
 
-data$popularity[data$shares < 946.1] <- 1.1#"Unpopular"
-data$popularity[(data$shares > 946.1 & data$shares < 1400.1) ] <- 2.1 #"Moderatly popular"
-data$popularity[(data$shares > 1400.1 & data$shares < 2800.1)] <- 3.1#"Quite popular"
-data$popularity[data$shares > 2800.1] <- 4.1#"Very popular"
+data$popularity[data$shares < 946.1] <- "Not very Popular"
+data$popularity[(data$shares > 946.1 & data$shares < 2800.1) ] <- "Moderatly popular"
+data$popularity[data$shares > 2800.1] <- "Very popular"
 
-data$popularity[data$shares < 1400.1] <- "Low"
 
-data$popularity[data$shares > 1400.1] <- "High"
 
-#inversion dummy data pour avoir une variable représentant le jour de la semaine
+#inversion dummy data pour avoir une variable représentant le jour de la semaine et une représentant le thème
 
 MultChoiceCondense<-function(vars,indata){
   tempvar<-matrix(NaN,ncol=1,nrow=length(indata[,1]))
@@ -68,6 +75,7 @@ data$theme[data$theme == 6] <- "world"
 ###########################
 #1ere approche globale    ####################################################################
 ###########################
+
 #39644 articles dans la base
 
 #en moyenne 3395 partages par article mais il existe des articles très peu ou très publiés
@@ -86,10 +94,11 @@ g <- a + geom_histogram(bins = 30, color = "black", fill = "gray") + geom_vline(
 ggplotly(g)
 
 #On va concentrer l'analyse sur les articles de - de 30 000 partages pour regarder plus en détails la répartition
+var (data$shares)
 
 data_inf_30k <- data[which(data$shares<30000), ]
 
-
+var (data_inf_30k$shares)
 # on obtient des résultats plus clair, presque la moitié des articles ont entre 1000 et 2000 partages
 a <- ggplot(data_inf_30k, aes(x = shares))
 
@@ -170,95 +179,84 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 # a contrario les articles sur les thèmes les moins nombreux sont les plus populaires (sans doute car plus originaux)
 
 #########################################
-#Préparation des echantillions          ####################################################################
+#Préparation des echantillons          ####################################################################
 #########################################
 
 
 
 #garder que les données quanti
-data_qt <- data_inf_30k[,-c(59,61:63)]
+data_qt <- data[,-c(59,61:63)]
 data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
 
 # 75% of the sample size
-smp_size <- floor(0.75 * nrow(data_inf_30k))
+smp_size <- floor(0.75 * nrow(data))
 
 # separation train/test avec une seed
 set.seed(123)
-train_ind <- sample(seq_len(nrow(data_inf_30k)), size = smp_size)
+train_ind <- sample(seq_len(nrow(data)), size = smp_size)
 
-train <- data_qt2[train_ind, ]
-test <- data_qt2[-train_ind, ]
+train <- data_qt[train_ind, ]
+test <- data_qt[-train_ind, ]
 
-y_train <- as.matrix(train[,19])
-y_test <- as.matrix(test[,19])
-x_train <- as.matrix(as.matrix(scale(train[,-19],center = T)))
-x_test <- as.matrix(as.matrix(scale(test[,-19],center = T)))
+y_train <- as.matrix(train[,59])
+y_test <- as.matrix(test[,59])
+x_train <- as.matrix(as.matrix(scale(train[,-59],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-59],center = T)))
 
 #########################################
-#Modèle de régression pénalisé          ####################################################################
+#Modèle de classification pénalisé          ####################################################################
 #########################################
 
-#Install Package
-install.packages("glmnet")
 
-#Load Library
-library(glmnet)
 
-reg <- glmnet(x_train,y_train,standardize=FALSE,lambda=0)
+# modèle LASSO
+
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=1,standardize=FALSE,type.multinomial = "grouped",lambda=0)
 
 # Display regression coefficients
-print(sort(coef(reg)))
+print(coef(reg))
 
 # prediction sur l'échantillon 
 
 pred<- predict(reg,x_test,type="class")
 
-print(as.data.frame(pred)[1])
 
 
-#c'est nul mdr
-plot(y_test)
-points(pred,col = "red", pch=16)
+confusionMatrix(factor(pred),factor(y_test))
+
+# modèle RIDGE
+
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0,standardize=FALSE,type.multinomial = "grouped",lambda=0)
+
+# Display regression coefficients
+print(coef(reg))
+
+# prediction sur l'échantillon 
+
+pred<- predict(reg,x_test,type="class")
 
 
-# Model performance metrics
-install.packages("caret")
-library(caret)
 
-data.frame(
-  RMSE = RMSE(pred, y_test),
-  Rsquare = R2(pred, y_test)
-)
-
-#rien de fou, on va faire une selection de variable
-
-# selection de variables vraiment pas folle
-mod <- lm(popularity~.,data=data_qt)
-print(mod)
-step(mod, data=data_qt,direction="backward")
-
-# on va tenter une ACP pour voir les variables qui contribuent le plus
-
-#mise en place de l'acp avec l'option pour centrer r?duire les donn?es
-res.pca <- PCA(data_qt, scale.unit = TRUE, graph = T)
-print(res.pca)
-# graphique ?cras? car 2 individus contribuent tr?s fortement ? la construction de l'axe 2
-
-eig.val <- get_eigenvalue(res.pca) 
-eig.val
-fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+confusionMatrix(factor(pred),factor(y_test))
 
 
-var <- get_pca_var(res.pca)
-var
+# modèle ELASTICNET
 
-#-> Graphique du Cos2 des variables sur le 1 premier axe : 
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda=0)
 
-fviz_cos2(res.pca, choice = "var", axes=3)
+# Display regression coefficients
+print(coef(reg))
 
-var$coord
-var$cos2
-var$contrib
+# prediction sur l'échantillon 
+
+pred<- predict(reg,x_test,type="class")
+
+
+
+confusionMatrix(factor(pred),factor(y_test))
+
+
+
 #########################################
 #Support Vector Machine                 ####################################################################
 #########################################

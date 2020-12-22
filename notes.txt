@@ -1,6 +1,40 @@
 liste des essais :
 
+---------------------------------------------------------------------------------------------------------------
+Approche problème de regression
+
 - test sans rien -> R2 0.01
 - test en centrant reduction des données données complètes -> R2 0.02
 - test sur les shares < 30k sans centrer/reduire -> R2 0.06
 - test sur les shares < 30k avec centrer/reduire -> R2 0.08
+- test de selection de variables méthode backward (ne garder que 18 variables) -> R2 0.16
+- test ACP pour selectiond de variables -> rien d'intéressant (chaque dimension explique 5% d'infos)
+- quelques tests en changeant les paramètres de glmnet mais nul
+
+On se rend compte que les valeurs des partages sont vraiment très variables, que toutes les variables importent de l'information, mais qu'aucunes variables n'est vraiment trop corrélée avec le nombre de partages
+
+CONCLUSION Regression : nécessiterais beaucoup de recodage, d'analyses pour arriver à un problème de regression "correct"
+------------------------------------------------------------------------------------------------------------------
+On va tenter de passer à un problème de classification : 
+
+OBJECTIF : prédire la popularité de l'article (recodage de shares), ce qui nous permettra pour chaque articles de donner un interval borné du nb de partages et non une valeur exacte
+
+- pour les matrices X de test et apprentissage on travaillera sur les données centrées réduites car on a vu que cela améliorait la performance des modèles
+
+- recodage de "shares" dans une colonne "popularity", en se basant sur les quartiles on définit :
+
+#Unpopular -> < 946 shares
+#Moderatly popular >946 & <1400 shares
+#Quite popular >1400 & <2800 shares
+#Very popular >2800 shares
+
+- 1er essai glmnet avec 4 classes -> accuracy (0.38), mieux qu'un problème de régression mais presque 60% d'erreur de prédiction
+- différents tests entre les données <30k shares et all -> pas de différences ! on peut travailler sur le dataset complet
+- en regardant la matrice de confusion on se rend compte que bcp de confusions entre les 2 classes intermédiaires
+- on va essayer en regroupant les deux classes intermédiaires :
+
+#Unpopular -> < 946 shares
+#Moderatly popular >946 & <2800shares
+#Very popular >2800 shares
+
+- essai avec glmnet -> accuracy (0.52), bien mieux ! mais reste vraiment perfectible, on va essayer de tuner les paramètres
