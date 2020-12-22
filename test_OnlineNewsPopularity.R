@@ -24,6 +24,7 @@ plot(data$shares)
 #Suppression d'une ligne avec un ratio de mots unique à 700 + suppression url et timedelta
 data <- data_all[-31038,-c(1:2)]
 summary(data)
+summary(data_inf_30k$shares)
 
 
 #Creation d'une variable popularity si >moyenne alors high sinon low
@@ -187,7 +188,9 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 
 #garder que les données quanti
 data_qt <- data[,-c(59,61:63)]
-#data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
+
+#
+data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
 
 # 75% of the sample size
 smp_size <- floor(0.75 * nrow(data))
@@ -208,7 +211,7 @@ x_train <- as.matrix(as.matrix(scale(train[,-59],center = T)))
 x_test <- as.matrix(as.matrix(scale(test[,-59],center = T)))
 
 #########################################
-#Modèle de classification pénalisé          ####################################################################
+#Modèle de classification pénalisé      ####################################################################
 #########################################
 
 
