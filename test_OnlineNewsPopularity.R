@@ -1,3 +1,8 @@
+
+###########################
+#      packages           ####################################################################
+###########################
+
 #packages
 library(corrplot)
 library(ggplot2)
@@ -15,7 +20,6 @@ library(glmnet)
 #import de données
 data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
 
-plot(data$shares)
 
 ###########################
 #traitements de données   ####################################################################
@@ -23,8 +27,9 @@ plot(data$shares)
 
 #Suppression d'une ligne avec un ratio de mots unique à 700 + suppression url et timedelta
 data <- data_all[-31038,-c(1:2)]
+
 summary(data)
-summary(data_inf_30k$shares)
+
 
 
 #Creation d'une variable popularity si >moyenne alors high sinon low
@@ -33,7 +38,6 @@ data$popularity <- ""
 
 #Unpopular
 #Moderatly popular
-#Quite popular
 #Very popular
 
 data$popularity[data$shares < 946.1] <- "Not very Popular"
@@ -55,6 +59,7 @@ MultChoiceCondense<-function(vars,indata){
   return(tempvar)
 }
 
+#creation d'une variable count (pour les graphiques)
 data$count=1
 data$day_of_week<-MultChoiceCondense(c("weekday_is_monday","weekday_is_tuesday","weekday_is_wednesday","weekday_is_thursday","weekday_is_friday","weekday_is_saturday","weekday_is_sunday"),data)
 data$day_of_week[data$day_of_week == 1] <- "Monday"
@@ -96,11 +101,9 @@ g <- a + geom_histogram(bins = 30, color = "black", fill = "gray") + geom_vline(
 ggplotly(g)
 
 #On va concentrer l'analyse sur les articles de - de 30 000 partages pour regarder plus en détails la répartition
-var (data$shares)
 
 data_inf_30k <- data[which(data$shares<30000), ]
 
-var (data_inf_30k$shares)
 # on obtient des résultats plus clair, presque la moitié des articles ont entre 1000 et 2000 partages
 a <- ggplot(data_inf_30k, aes(x = shares))
 
@@ -189,7 +192,7 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 #garder que les données quanti
 data_qt <- data[,-c(59,61:63)]
 
-#
+#data avec selection de features 
 data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
 
 # 75% of the sample size
@@ -228,7 +231,7 @@ print(coef(reg))
 pred<- predict(reg,x_test,type="class")
 
 
-
+#resultats
 confusionMatrix(factor(pred),factor(y_test))
 
 # modèle RIDGE
@@ -243,7 +246,7 @@ print(coef(reg))
 pred<- predict(reg,x_test,type="class")
 
 
-
+#resultats
 confusionMatrix(factor(pred),factor(y_test))
 
 
@@ -258,6 +261,7 @@ plot(cv.reg)
 #best value for lambda
 cv.reg$lambda.min
 
+#model
 reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.min)
 reg2 <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.1se)
 
@@ -270,7 +274,7 @@ print(coef(reg))
 pred<- predict(reg,x_test,type="class")
 pred2 <-predict(reg2,x_test,type="class")
 
-
+#resultats
 confusionMatrix(factor(pred2),factor(y_test))
 
 
@@ -288,13 +292,15 @@ library(e1071)
 
 #test d'un SVM basique
 
+#centrage reduction des variables explicatives
 train[-59] <- scale(train[-59],center=T)
 train[,59] <- as.factor(train[,59])
 test[-59] <- scale(test[-59],center=T)
 test[,59] <- as.factor(test[,59])
 
 #avant de lancer le svm il faut absolument réduire le nombre de features sinon le temps d'exécution va etre abominable
-
+#temps avec selection de features 2-5 minutes
+#temps modèle complet 15-20 minutes
 
 
 #Regression with SVM
@@ -305,10 +311,12 @@ modelsvm = svm(popularity~.,train,kernel="radial",type="C-classification")
 #Predict using SVM regression
 predYsvm = predict(modelsvm, test[-59])
 
-
+#resultats
 confusionMatrix(factor(predYsvm),factor(y_test))
 
-
+#########################################
+#        NEURAL NETWORK                 ####################################################################
+#########################################
 
 
 # load library
