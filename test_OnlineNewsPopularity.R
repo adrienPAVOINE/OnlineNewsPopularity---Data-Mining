@@ -25,6 +25,9 @@ data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNe
 #traitements de données   ####################################################################
 ###########################
 
+# checking for NaN
+sum(is.na(data))
+
 #Suppression d'une ligne avec un ratio de mots unique à 700 + suppression url et timedelta
 data <- data_all[-31038,-c(1:2)]
 
@@ -160,7 +163,9 @@ ggplot(data=data, aes(x=day_of_week, y=count, fill=popularity)) +
 
 #bcp moins d'articles publiés le wkd mais bcp plus de partages le wkd
 
+summary(log(data$shares))
 
+0.88/7.437
 #########################################
 #statistiques sur les thématiques       ####################################################################
 #########################################
@@ -288,6 +293,8 @@ install.packages("e1071")
 
 #Load Library
 library(e1071)
+
+
 
 
 #test d'un SVM basique
