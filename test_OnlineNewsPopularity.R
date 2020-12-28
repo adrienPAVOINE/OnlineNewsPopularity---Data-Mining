@@ -319,7 +319,7 @@ modelsvm = svm(popularity~.,train,kernel="radial",type="C-classification")
 predYsvm = predict(modelsvm, test[-59])
 
 #resultats
-confusionMatrix(factor(predYsvm),factor(y_test))
+confusionMatrix(factor(predYsvm),factor(y_test)) 
 
 #########################################
 #        NEURAL NETWORK                 ####################################################################
