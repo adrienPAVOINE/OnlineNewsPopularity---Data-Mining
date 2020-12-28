@@ -1,3 +1,12 @@
+dir.create(dir <- "/tmp/data", showWarnings = FALSE)
+file <- file.path(dir, "bcTCGA.rds")
+if (!file.exists(file)) {
+  download.file("https://s3.amazonaws.com/pbreheny-data-sets/bcTCGA.rds",
+                destfile = file)
+}
+bcTCGA <- readRDS(file)
+
+
 ###########################
 #TEST TRAITEMENTS DATA    ####################################################################
 ###########################
