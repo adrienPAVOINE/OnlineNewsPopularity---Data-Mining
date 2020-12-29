@@ -656,3 +656,17 @@ predYnn = compute(nn, test[-59])
 print(predYnn)
 
 confusionMatrix(factor(predYnn),factor(y_test))
+
+
+#########################################
+#        RANDOM FOREST                  ####################################################################
+#########################################
+
+install.packages("randomForest")
+library(randomForest)
+data_qt <- data[,-c(50,52:54)]
+data_qt$popularity<-factor(data_qt$popularity)
+RandomForest_News <- randomForest(popularity~.,data=data_qt, ntree = 200, 
+                                  mtry = 3, na.action = na.roughfix)
+
+print(RandomForest_News)
