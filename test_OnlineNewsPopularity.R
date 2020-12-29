@@ -29,7 +29,15 @@ data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNe
 sum(is.na(data))
 
 #Suppression d'une ligne avec un ratio de mots unique à 700 + suppression url et timedelta
-data <- data_all[-31038,-c(1:2)]
+# The following variables can be omitted:
+#   
+# url: URL of the article (non-predictive)
+# timedelta: Days between the article publication and the dataset acquisition (non-predictive)
+# five LDA variables
+# is_weekend, since it seems to be duplicating days of week
+# kw_min_min, kw_avg_min, kw_min_avg have a number of negative values
+
+data <- data_all[-31038,-c(1:2,20,22,26,39:44)]
 
 summary(data)
 
@@ -91,7 +99,7 @@ data$theme[data$theme == 6] <- "world"
 #en moyenne 3395 partages par article mais il existe des articles très peu ou très publiés
 summary(data$shares)
 
-correlation<- as.data.frame(cor(data[,-c(60:63)]))
+correlation<- as.data.frame(cor(data[,-c(51:54)]))
 
 # avec un histogramme on se rend compte que 38 000 articles sont dans la premières classes
 # donc on a à peine 2000 articles qui ont plus de 30 000 partages
@@ -137,7 +145,7 @@ plot(x=data$n_tokens_content,y=data$shares)
 plot(x=data$n_unique_tokens,y=data$shares)
 
 #a priori pas de grosse corrélation
-corrplot(cor(data[,c(1:3,59)]))
+corrplot(cor(data[,c(1:3,50)]))
 
 
 #########################################
@@ -163,9 +171,7 @@ ggplot(data=data, aes(x=day_of_week, y=count, fill=popularity)) +
 
 #bcp moins d'articles publiés le wkd mais bcp plus de partages le wkd
 
-summary(log(data$shares))
 
-0.88/7.437
 #########################################
 #statistiques sur les thématiques       ####################################################################
 #########################################
@@ -195,10 +201,12 @@ ggplot(data=data, aes(x=theme, y=count, fill=popularity)) +
 
 
 #garder que les données quanti
-data_qt <- data[,-c(59,61:63)]
+data_qt <- data[,-c(50,52:54)]
 
 #data avec selection de features 
-data_qt2 <- data_inf_30k[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
+fit_full <- lm(shares ~ ., data = data[,-c(51:54)])
+select_fit<-step(fit_full, k=log(nrow(train)), direction="both")
+data_qt2 <- data[,c(labels(select_fit$coefficients)[-1],"popularity")]
 
 # 75% of the sample size
 smp_size <- floor(0.75 * nrow(data))
@@ -211,48 +219,46 @@ train <- data_qt[train_ind, ]
 
 test <- data_qt[-train_ind, ]
 
-train[]
-
-y_train <- as.matrix(train[,59])
-y_test <- as.matrix(test[,59])
-x_train <- as.matrix(as.matrix(scale(train[,-59],center = T)))
-x_test <- as.matrix(as.matrix(scale(test[,-59],center = T)))
+y_train <- as.matrix(train[,50])
+y_test <- as.matrix(test[,50])
+x_train <- as.matrix(as.matrix(scale(train[,-50],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-50],center = T)))
 
 #########################################
 #Modèle de classification pénalisé      ####################################################################
 #########################################
 
 
-
-# modèle LASSO
-
-reg <- glmnet(x_train,y_train,family="multinomial",alpha=1,standardize=FALSE,type.multinomial = "grouped",lambda=0)
-
-# Display regression coefficients
-print(coef(reg))
-
-# prediction sur l'échantillon 
-
-pred<- predict(reg,x_test,type="class")
-
-
-#resultats
-confusionMatrix(factor(pred),factor(y_test))
-
-# modèle RIDGE
-
-reg <- glmnet(x_train,y_train,family="multinomial",alpha=0,standardize=FALSE,type.multinomial = "grouped",lambda=0)
-
-# Display regression coefficients
-print(coef(reg))
-
-# prediction sur l'échantillon 
-
-pred<- predict(reg,x_test,type="class")
-
-
-#resultats
-confusionMatrix(factor(pred),factor(y_test))
+# 
+# # modèle LASSO
+# 
+# reg <- glmnet(x_train,y_train,family="multinomial",alpha=1,standardize=FALSE,type.multinomial = "grouped",lambda=0)
+# 
+# # Display regression coefficients
+# print(coef(reg))
+# 
+# # prediction sur l'échantillon 
+# 
+# pred<- predict(reg,x_test,type="class")
+# 
+# 
+# #resultats
+# confusionMatrix(factor(pred),factor(y_test))
+# 
+# # modèle RIDGE
+# 
+# reg <- glmnet(x_train,y_train,family="multinomial",alpha=0,standardize=FALSE,type.multinomial = "grouped",lambda=0)
+# 
+# # Display regression coefficients
+# print(coef(reg))
+# 
+# # prediction sur l'échantillon 
+# 
+# pred<- predict(reg,x_test,type="class")
+# 
+# 
+# #resultats
+# confusionMatrix(factor(pred),factor(y_test))
 
 
 # modèle ELASTICNET
@@ -280,8 +286,108 @@ pred<- predict(reg,x_test,type="class")
 pred2 <-predict(reg2,x_test,type="class")
 
 #resultats
+confusionMatrix(factor(pred),factor(y_test))
+
 confusionMatrix(factor(pred2),factor(y_test))
 
+#0.5167 contre 0.5127
+
+#on va essayer avec la selection de variables
+
+train <- data_qt2[train_ind, ]
+
+test <- data_qt2[-train_ind, ]
+
+y_train <- as.matrix(train[,11])
+y_test <- as.matrix(test[,11])
+x_train <- as.matrix(as.matrix(scale(train[,-11],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-11],center = T)))
+
+
+# modèle ELASTICNET
+
+cv.reg <- cv.glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped")
+
+
+plot(cv.reg)
+#The plot displays the cross-validation error according to the log of lambda. The left dashed vertical line indicates that the log of the optimal value of lambda is approximately -6.5, which is the one that minimizes the prediction error
+
+#best value for lambda
+cv.reg$lambda.min
+
+#model
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.min)
+reg2 <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.1se)
+
+
+# Display regression coefficients
+print(coef(reg))
+
+# prediction sur l'échantillon 
+
+pred3<- predict(reg,x_test,type="class")
+pred4 <-predict(reg2,x_test,type="class")
+
+#resultats
+confusionMatrix(factor(pred),factor(y_test))
+
+confusionMatrix(factor(pred2),factor(y_test))
+#0.5125 contre 0.5101
+
+timing <- function(expr) system.time(expr)[3]
+accuracy <- function(ConfMat){return(ConfMat$overall[1])}
+
+
+#test de fonction de comparaison
+
+res_all <- replicate(200, simplify = FALSE, {
+
+  t_all <- timing(mod_all <- glmnet(X[ind.train, ], y[ind.train]))
+  
+  preds_all <- predict(mod_all, X[ind.test, ])
+  rmse_all <- apply(preds_all, 2, RMSE, y[ind.test])
+  
+  t_cv <- timing(mod_cv <- cv.glmnet(X[ind.train, ], y[ind.train]))
+  preds_1se <- predict(mod_cv, X[ind.test, ], s = "lambda.1se")
+  rmse_1se <- RMSE(preds_1se, y[ind.test])
+  preds_min <- predict(mod_cv, X[ind.test, ], s = "lambda.min")
+  rmse_min <- RMSE(preds_min, y[ind.test])
+  
+  library(bigstatsr)
+  t_CMSA <- timing({
+    X2 <- as_FBM(X)
+    mod_CMSA <- big_spLinReg(X2, y[ind.train], ind.train)
+  })
+  preds_CMSA <- predict(mod_CMSA, X2, ind.test)
+  rmse_CMSA <- RMSE(preds_CMSA, y[ind.test])
+  
+  library(glmnetUtils)
+  ALPHA <- c(1, 0.5, 0.1)
+  t_cva <- timing(mod_cva <- cva.glmnet(X[ind.train, ], y[ind.train], alpha = ALPHA))
+  alpha <- ALPHA[which.min(sapply(mod_cva$modlist, function(mod) min(mod$cvm)))]
+  rmse_cva <- RMSE(predict(mod_cva, X[ind.test, ], alpha = alpha), y[ind.test])
+  
+  t_CMSA2 <- timing({
+    X2 <- as_FBM(X)
+    mod_CMSA2 <- big_spLinReg(X2, y[ind.train], ind.train, alphas = ALPHA)
+  })
+  preds_CMSA2 <- predict(mod_CMSA2, X2, ind.test)
+  rmse_CMSA2 <- RMSE(preds_CMSA2, y[ind.test])
+  
+  tibble::tribble(
+    ~method,        ~timing,  ~rmse,
+    "glmnet_best",  t_all,    min(rmse_all),
+    "glmnet_min",   t_cv,     rmse_1se,
+    "glmnet_1se",   t_cv,     rmse_min,
+    "CMSA",         t_CMSA,   rmse_CMSA,
+    "glmnet_cva",   t_cva,    rmse_cva,
+    "CMSA2",        t_CMSA2,  rmse_CMSA2
+  )
+  
+})
+
+res <- do.call(rbind, res_all)
+res$run_number <- rep(seq_along(res_all), each = 6)
 
 
 #########################################
