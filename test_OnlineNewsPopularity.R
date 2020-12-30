@@ -390,6 +390,7 @@ res <- do.call(rbind, res_all)
 res$run_number <- rep(seq_along(res_all), each = 6)
 
 
+
 #########################################
 #Support Vector Machine                 ####################################################################
 #########################################
@@ -400,16 +401,13 @@ install.packages("e1071")
 #Load Library
 library(e1071)
 
-
-
-
 #test d'un SVM basique
 
 #centrage reduction des variables explicatives
-train[-59] <- scale(train[-59],center=T)
-train[,59] <- as.factor(train[,59])
-test[-59] <- scale(test[-59],center=T)
-test[,59] <- as.factor(test[,59])
+#train[-59] <- scale(train[-59],center=T)
+#train[,59] <- as.factor(train[,59])
+#test[-59] <- scale(test[-59],center=T)
+#test[,59] <- as.factor(test[,59])
 
 #avant de lancer le svm il faut absolument réduire le nombre de features sinon le temps d'exécution va etre abominable
 #temps avec selection de features 2-5 minutes
@@ -419,13 +417,140 @@ test[,59] <- as.factor(test[,59])
 #Regression with SVM
 #modelsvm = svm(popularity~.,train[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)],kernel="radial",type="C-classification")
 
-modelsvm = svm(popularity~.,train,kernel="radial",type="C-classification")
+#modelsvm = svm(popularity~.,train,kernel="radial",type="C-classification")
 
 #Predict using SVM regression
-predYsvm = predict(modelsvm, test[-59])
+#predYsvm = predict(modelsvm, test[-59])
 
 #resultats
-confusionMatrix(factor(predYsvm),factor(y_test)) 
+#confusionMatrix(factor(predYsvm),factor(y_test)) 
+
+
+
+
+#oc_svm_pred_test <- predict(modelsvm,test[-59],decision.values = TRUE)
+
+#Réalisation d'un SVM avec 
+
+newdata <- data_qt[,c(12:16,18:20,25:26,31:33,35:36,38,43,47,59)]
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(newdata))
+# separation train/test avec une seed
+set.seed(123)
+train_ind <- sample(seq_len(nrow(newdata)), size = smp_size)
+ntrain <- newdata[train_ind, ]
+
+ntest <- newdata[-train_ind, ]
+
+#centrage reduction des variables explicatives
+ntrain[-19] <- scale(ntrain[-19],center=T)
+ntrain[,19] <- as.factor(ntrain[,19])
+ntest[-19] <- scale(ntest[-19],center=T)
+ntest[,19] <- as.factor(ntest[,19])
+svmfit =svm(popularity~., data=ntrain, kernel ="radial", type="C-classification",gamma =0.1,cost =10)
+#réalisation de la prédiction
+pred = predict(svmfit, ntest[-19])
+table(pred, ntest[,19])
+#on constate que presque tout est prédit populaire mais un peu mieux que précedant
+#resultats
+confusionMatrix(factor(pred),factor(ntest[,19])) 
+#on obtient un taux d'accuracy de 0.5113
+
+######tunage des paramètres#####
+#tunage de gamma et cost####
+#trop long à executer 
+svm_tune <- tune(svm, train.x=ntrain[-19], train.y=ntrain[,19], kernel="radial", ranges=list(cost=10^(-2:2), gamma=2^(-2:2)))
+
+
+####Réduction avec une ACP########
+
+#On essaye de réduire les dimensions pour ne retenir que 2 axes 
+library("FactoMineR")
+library("factoextra")
+
+res.pca <- PCA(newdata[-19], scale.unit = TRUE, ncp = 2, graph = TRUE)
+ind <- get_pca_ind(res.pca)
+daf <- data.frame(cbind(ind$coord, newdata$popularity))
+daf[,1] <- round(as.double(daf[,1]),3)
+daf[,2] <- round(as.double(daf[,2]),3)
+plot(daf$Dim.1,daf$Dim.2)
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(daf))
+# separation train/test avec une seed
+set.seed(123)
+train_ind <- sample(seq_len(nrow(daf)), size = smp_size)
+ftrain <- daf[train_ind, ]
+ftest <- daf[-train_ind, ]
+
+ftrain[,3] <- as.factor(ftrain[,3])
+ftest[,3] <- as.factor(ftest[,3])
+#on réalise le modele sur ces doonnées
+svmfit =svm(V3~., data=ftrain, kernel ="radial", type="C-classification",gamma =0.1,cost =10)
+#avec 2 dimensions, on peut afficher un graphique 
+plot(svmfit, ftrain, Dim.1 ~ Dim.2,
+     slice=list(Dim.1=3, Dim.2=4))
+#réalisation de la prédiction
+pred = predict(svmfit, ftest[-3])
+table(pred, ftest[,3])
+#on constate que presque tout est prédit populaire
+#resultats
+confusionMatrix(factor(pred),factor(ftest[,3])) 
+#on obtient un taux d'accuracy de 0.5062
+
+
+#Réalise le même test avec toutes les données quanti et en gardant 5 axes
+res.pca <- PCA(data_qt[-59], scale.unit = TRUE, ncp = 5, graph = TRUE)
+ind <- get_pca_ind(res.pca)
+daf <- data.frame(cbind(ind$coord, newdata$popularity))
+daf[,1] <- round(as.double(daf[,1]),3)
+daf[,2] <- round(as.double(daf[,2]),3)
+daf[,3] <- round(as.double(daf[,3]),3)
+daf[,4] <- round(as.double(daf[,4]),3)
+daf[,5] <- round(as.double(daf[,5]),3)
+plot(daf$Dim.1,daf$Dim.2)
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(daf))
+# separation train/test avec une seed
+set.seed(123)
+train_ind <- sample(seq_len(nrow(daf)), size = smp_size)
+ftrain <- daf[train_ind, ]
+ftest <- daf[-train_ind, ]
+
+ftrain[,6] <- as.factor(ftrain[,6])
+ftest[,6] <- as.factor(ftest[,6])
+#on réalise le modele sur ces doonnées
+svmfit =svm(V6~., data=ftrain, kernel ="radial", type="C-classification",gamma =0.1,cost =10)
+#avec 2 dimensions, on peut afficher un graphique 
+plot(svmfit, ftrain, Dim.1 ~ Dim.2,
+     slice=list(Dim.1=3, Dim.2=4))
+#réalisation de la prédiction
+pred = predict(svmfit, ftest[-6])
+table(pred, ftest[,6])
+#on constate que presque tout est prédit populaire mais un peu mieux que précedant
+#resultats
+confusionMatrix(factor(pred),factor(ftest[,6])) 
+#on obtient un taux d'accuracy de 0.51
+
+
+
+###autres tests
+
+obj <- tune(svm, V3~., data = ftrain,
+            ranges = list(gamma = 2^(-1:1), cost = 2^(2:4)),
+            tunecontrol = tune.control(sampling = "fix"))
+
+
+tuned_parameters <- tune.svm(popularity~., data = ntrain, gamma = 10^(-5:-1), cost = 10^(-3:1))
+summary(tuned_parameters )
+
+svmfit =svm(popularity~., data=ntrain, kernel ="radial", type="C-classification",gamma =0.5,cost =1)
+summary(obj)
+plot(obj)
+#model = svm(X, Y, type = "C-classification", kernel = "polynomial")
+
+pred = predict(svmfit, ftest[-3])
+
+table(pred, ftest[,3])
 
 #########################################
 #        NEURAL NETWORK                 ####################################################################
