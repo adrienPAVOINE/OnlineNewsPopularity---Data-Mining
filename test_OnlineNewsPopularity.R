@@ -18,7 +18,8 @@ install.packages("glmnet")
 #Load Library
 library(glmnet)
 #import de données
-data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
+#data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
+data_all <-read.csv("/Volumes/KINGSTON/M2/JAP/Projet_JAP/git/Data-Mining-Project/OnlineNewsPopularity.csv",sep=",",dec=".")
 
 
 ###########################
@@ -558,6 +559,103 @@ table(pred, ftest[,3])
 
 #--------------NN Antho-----------------------
 
+library(UBL)
+
+tk<-cbind(xsmote,ysmote)
+
+balanced.data <- TomekClassif(ysmote~., tk, dist = "Euclidean", p = 2, Cl = c("Moderatly popular"), rem = "maj" )  #c("Very popular","Moderatly popular","Not very Popular")
+bdata_1 <- balanced.data[[1]]
+plot(bdata_1[,c(1,2)], col = ifelse(bdata_1$Species == "rare", "red","blue"), pch=16, cex
+= 2 , xlim = c(4,8), ylim = c(2,4.2))
+
+
+library(ROSE)
+dunder<-cbind(xsmote,ysmote)
+tmp_df = dunder[which(ysmote=="Moderatly popular"),]
+tmp<-ovun.sample(ysmote ~ ., data = tmp_df, method = "under", p = 0.5, seed = 5)$data
+balanced_sample<-rbind(balanced_sample, tmp)
+
+library(smotefamily)
+
+xsmote<-as.data.frame(x_train)
+ysmote<-as.factor(y_train)
+length(ysmote)
+
+balanced.data <- SMOTE(X=xsmote, target = ysmote ,K =5, dup_size = 1 ) 
+new_data = balanced.data$syn_data
+bdata = balanced.data$data
+table(ysmote)
+table(bdata$class)
+
+balanced.data2 <- SMOTE(X=bdata[,1:58], target = bdata[,59] ,K =5, dup_size = 1 ) 
+new_data2 = balanced.data2$syn_data
+bdata2 = balanced.data2$data
+table(ysmote)
+table(bdata$class)
+table(bdata2$class)
+
+
+
+h2o.init(nthreads = -1)
+
+#transformer en un format reconnu par h2o
+h2oTrain<-bdata2
+h2oTrain$class <- as.factor(h2oTrain$class)
+h2oTrain <- as.h2o(h2oTrain)
+
+testnnh2o <- test
+testnnh2o$popularity <- as.factor(testnnh2o$popularity )
+
+h2oTest <- as.h2o(testnnh2o)
+
+#modélisation
+pm.h2o <- h2o.deeplearning(y="class",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(30,10),seed=100,nfolds=5)
+
+#prédiction
+pred.pm.h20 <- h2o.predict(pm.h2o,newdata=h2oTest)
+
+#évaluation
+cm<-as.matrix(pred.pm.h20)[,"predict"]
+head(cm)
+cm<-as.factor(cm)
+confusionMatrix(testnnh2o$popularity ,cm )
+#Ou
+h2o.confusionMatrix(pm.h2o,newdata=h2oTest)
+
+
+## Stop once the top 5 models are within 1% of each other (i.e., the windowed average varies less than 1%)
+search_criteria = list(strategy = "RandomDiscrete", max_runtime_secs = 360, max_models = 100, seed=1234567, stopping_rounds=5, stopping_tolerance=1e-2)
+dl_random_grid <- h2o.grid(
+  algorithm="deeplearning",
+  grid_id = "dl_grid_random",
+  training_frame=h2oTrain,
+  y="class",
+  epochs=1,
+  stopping_metric="logloss",
+  stopping_tolerance=1e-2,        ## stop when logloss does not improve by >=1% for 2 scoring events
+  stopping_rounds=2,
+  score_validation_samples=10000, ## downsample validation set for faster scoring
+  score_duty_cycle=0.025,         ## don't score more than 2.5% of the wall time
+  max_w2=10,                      ## can help improve stability for Rectifier
+  hyper_params = hyper_params,
+  search_criteria = search_criteria,
+  nfolds=5
+)                                
+grid <- h2o.getGrid("dl_grid_random",sort_by="logloss",decreasing=FALSE)
+grid
+
+grid@summary_table[1,]
+best_model <- h2o.getModel(grid@model_ids[[1]]) ## model with lowest logloss
+best_model
+
+pred3.pm.h20 <- h2o.predict(best_model,newdata=h2oTest)
+cm3<-as.matrix(pred3.pm.h20)[,"predict"]
+cm3<-as.factor(cm3)
+confusionMatrix(testnnh2o$popularity ,cm3 )
+
+
+
+
 #____________LIBRARY NNET______________________
 
 library(nnet)
@@ -565,7 +663,10 @@ set.seed(100)
 
 ciblennet <- as.factor(train[,'popularity'])
 
-ps.nnet <- nnet(ciblennet ~ ., data = x_train, skip = F, size = 3,na.action = na.omit, maxit=500 )
+ps.nnet <- nnet(ciblennet ~ ., data = x_train, skip = F, size = 3,na.action = na.omit, maxit=300 )
+
+#100,150,200 pas convergé
+#300 ok 
 
 #prediction
 pred.ps.nnet <- predict(ps.nnet,newdata=test, type="class")
@@ -573,7 +674,34 @@ pred.ps.nnet <- predict(ps.nnet,newdata=test, type="class")
 pred.ps.nnet<-as.factor(pred.ps.nnet)
 confusionMatrix(as.factor(test$popularity) ,pred.ps.nnet )
 
-#3 : 0,4113 
+table(test$popularity,pred.ps.nnet)
+
+#Quasi tout prédit en not very 
+
+ciblennet <- as.factor(train[,'popularity'])
+
+ps.nnet3 <- nnet(ciblennet ~ ., data = x_train, skip = F, size =10,na.action = na.omit, maxit=300 )
+
+#prediction
+pred.ps.nnet3 <- predict(ps.nnet3,newdata=test, type="class")
+
+pred.ps.nnet3<-as.factor(pred.ps.nnet3)
+confusionMatrix(as.factor(test$popularity) ,pred.ps.nnet3)
+
+#quasi tout en moderatly 
+
+
+ciblennet2<-as.factor(bdata2[,59])
+ps.nnet2 <- nnet(ciblennet2 ~ ., data = bdata2, skip = F, size = 3,na.action = na.omit, maxit=500 )
+
+#prediction
+pred.ps.nnet2 <- predict(ps.nnet2,newdata=test, type="class")
+
+pred.ps.nnet2<-as.factor(pred.ps.nnet2)
+confusionMatrix(as.factor(test$popularity) ,pred.ps.nnet2 )
+
+
+
 
 
 #____________LIBRARY H2O______________________
@@ -589,34 +717,34 @@ h2o.init(nthreads = -1)
 #transformer en un format reconnu par h2o
 h2oTrain <- as.h2o(trainnnh2o)
 
-print(head(h2oTrain))
-
 testnnh2o <- test
 testnnh2o$popularity <- as.factor(testnnh2o$popularity )
 
 h2oTest <- as.h2o(testnnh2o)
 
 #modélisation
-pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(2),seed=100,nfolds=5)
+pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Maxout",hidden=c(2),seed=100,nfolds=5,
+                           keep_cross_validation_predictions=T,keep_cross_validation_fold_assignment=T)
 
 #prédiction
 pred.pm.h20 <- h2o.predict(pm.h2o,newdata=h2oTest)
 
-print(head(pred.pm.h20))
-print(tail(pred.pm.h20))
+#print(head(pred.pm.h20))
+#print(tail(pred.pm.h20))
 
 #évaluation
 cm<-as.matrix(pred.pm.h20)[,"predict"]
-head(cm)
+#head(cm)
 cm<-as.factor(cm)
 confusionMatrix(testnnh2o$popularity ,cm )
 #Ou
 h2o.confusionMatrix(pm.h2o,newdata=h2oTest)
 
-#0,5035 --> quasi tout prédit en moderatly
+
 
 ####-----
-pm2.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(20),seed=100,nfolds = 5 )
+pm2.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Maxout",hidden=c(20),seed=100,nfolds = 5,
+                            keep_cross_validation_predictions=T,keep_cross_validation_fold_assignment=T)
 
 pred2.pm.h20 <- h2o.predict(pm2.h2o,newdata=h2oTest)
 cm2<-as.matrix(pred2.pm.h20)[,"predict"]
@@ -633,13 +761,13 @@ cmh2o
 #Random Hyper-Parameter Search
 
 hyper_params <- list(
-  activation=c("Rectifier","Tanh","Maxout","RectifierWithDropout","TanhWithDropout","MaxoutWithDropout"),
-  hidden=list(2,3,4,5,6,7,8,9,10,15,20,25,30),
-  input_dropout_ratio=c(0,0.05),
-  l1=seq(0,1e-4,1e-6),
-  l2=seq(0,1e-4,1e-6)
+  activation=c("Rectifier","Tanh","Maxout","RectifierWithDropout","TanhWithDropout","MaxoutWithDropout")#,
+ # hidden=list(2,3,4,5,6,7,8,9,10,15,20,25,30)#,
+  #input_dropout_ratio=c(0,0.05),
+  #l1=seq(0,1e-4,1e-6),
+ # l2=seq(0,1e-4,1e-6)
 )
-hyper_params
+#hyper_params
 
 ## Stop once the top 5 models are within 1% of each other (i.e., the windowed average varies less than 1%)
 search_criteria = list(strategy = "RandomDiscrete", max_runtime_secs = 360, max_models = 100, seed=1234567, stopping_rounds=5, stopping_tolerance=1e-2)
@@ -671,7 +799,9 @@ cm3<-as.matrix(pred3.pm.h20)[,"predict"]
 cm3<-as.factor(cm3)
 confusionMatrix(testnnh2o$popularity ,cm3 )
 #0.5131
-
+table(testnnh2o$popularity ,cm3 )
+table(cm3)
+table(testnnh2o$popularity)
 
 ####----
 
@@ -734,7 +864,8 @@ confusionMatrix(testnnh2o$popularity ,cm4 )
 
 ####----
 
-pm2c.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(30,10,3),seed=100,nfolds = 5 )
+pm2c.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(30,10,3),seed=100,nfolds = 5,
+                             keep_cross_validation_predictions=T,keep_cross_validation_fold_assignment=T)
 
 pred2c.pm.h20 <- h2o.predict(pm2c.h2o,newdata=h2oTest)
 cm2c<-as.matrix(pred2c.pm.h20)[,"predict"]
@@ -761,6 +892,29 @@ confusionMatrix(testnnh2o$popularity ,cm2c )
 #rectifier : 
 ##30,10,3 : 0,2434
 
+
+varimp<-as.data.frame(h2o.varimp(pm2c.h2o))
+varimp
+varbest<-varimp$variable[varimp$relative_importance>0.7] #.7
+
+trainnnh2o2 <- train[,c(varbest,'popularity')]
+trainnnh2o2$popularity <- as.factor(trainnnh2o2$popularity )
+
+#transformer en un format reconnu par h2o
+h2oTrain2 <- as.h2o(trainnnh2o2)
+
+testnnh2o2 <- test[,c(varbest,'popularity')]
+testnnh2o2$popularity <- as.factor(testnnh2o2$popularity )
+
+h2oTest2 <- as.h2o(testnnh2o2)
+
+pm2c.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,standardize = FALSE,activation="Maxout",hidden=c(30,10,3),seed=100,nfolds = 5,
+                             keep_cross_validation_predictions=T,keep_cross_validation_fold_assignment=T)
+
+pred2c.pm.h20 <- h2o.predict(pm2c.h2o,newdata=h2oTest)
+cm2c<-as.matrix(pred2c.pm.h20)[,"predict"]
+cm2c<-as.factor(cm2c)
+confusionMatrix(testnnh2o$popularity ,cm2c )
 
 
 #arrêt
