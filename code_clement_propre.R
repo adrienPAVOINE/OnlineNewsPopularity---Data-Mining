@@ -314,3 +314,32 @@ confusionMatrix(factor(pred2),factor(y_test))
 
 #Les meilleurs modèles sont ceux sans sélections de variables et avec le lambda_min
 
+
+
+#########################################
+#        RANDOM FOREST                  ####################################################################
+#########################################
+
+install.packages("randomForest")
+library(randomForest)
+
+# Conversion de la popularité en factor
+data_qt$popularity<-factor(data_qt$popularity)
+
+# Mise en place d'un randomForest, on a trouvé les paramètres en fonctionnant à tâton
+RandomForest_News <- randomForest(popularity~.,data=data_qt, ntree = 200, 
+                                  mtry = 3, na.action = na.roughfix)
+
+print(RandomForest_News)
+
+# On cherche en tunnant les paramètres, on ne prend que les 5000 premières observations car sinon c'est beaucoup trop long de tout tuner
+control <- trainControl(method="repeatedcv", number=5, repeats=3, search="random")
+set.seed(123)
+mtry <- 10
+metric <- "Accuracy"
+tunegrid <- expand.grid(.mtry=mtry)
+rf_random <- train(popularity~., data=data_qt[1:5000,], method="rf", metric=metric, trControl=control)
+print(rf_random)
+plot(rf_random) 
+
+#en tunnant on arrive à atteindre les 55% d'accuracy
