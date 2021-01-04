@@ -959,6 +959,6 @@ set.seed(123)
 mtry <- 10
 metric <- "Accuracy"
 tunegrid <- expand.grid(.mtry=mtry)
-rf_random <- train(popularity~., data=data_qt, method="rf", metric=metric, trControl=control)
+rf_random <- train(popularity~., data=data_qt[1:10000,], method="rf", metric=metric, trControl=control)
 print(rf_random)
 plot(rf_random) 
