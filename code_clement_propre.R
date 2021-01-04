@@ -205,3 +205,112 @@ ggplot(data=data[data$theme != NaN,], aes(x=theme, y=count, fill=popularity)) +
 
 #les articles sur les thèmes les moins nombreux sont les plus populaires (sans doute car plus originaux)
 
+
+
+#########################################
+#Préparation des echantillons          ####################################################################
+#########################################
+
+
+
+#on ne garde que les données quantitative + la variable prédictive
+data_qt <- data[,-c(50,52:54)]
+
+#on créer un deuxième dataset avec une selection de features "stepwise"
+fit_full <- lm(shares ~ ., data = data[,-c(51:54)])
+select_fit<-step(fit_full, k=log(nrow(train)), direction="both")
+data_qt2 <- data[,c(labels(select_fit$coefficients)[-1],"popularity")]
+
+# découpage | 75% train et 25% test
+smp_size <- floor(0.75 * nrow(data))
+
+# separation train/test avec une seed
+set.seed(123)
+train_ind <- sample(seq_len(nrow(data)), size = smp_size)
+
+train <- data_qt[train_ind, ]
+
+test <- data_qt[-train_ind, ]
+
+# création des x/y train/test
+# on centre et on réduit les données pour mettre toutes les données quantitatives à la même échelle
+y_train <- as.matrix(train[,50])
+y_test <- as.matrix(test[,50])
+x_train <- as.matrix(as.matrix(scale(train[,-50],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-50],center = T)))
+
+#########################################
+#Modèle de classification pénalisé      ####################################################################
+#########################################
+
+# modèle ELASTICNET
+
+# on effectue une cross validation sur un glmnet pour trouver la valeur optimale du paramètre lambda
+cv.reg <- cv.glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped")
+
+
+plot(cv.reg)
+#le graphique montre la cross-validation selon la valeur de lambda. La ligne verticale gauche indique que le log de la valeur optimale du lambda se trouve aux alentours de 6.5, c'est la valeur qui minimise l'erreur
+
+#meilleure valeur de lambda
+cv.reg$lambda.min
+
+#création de deux modèles : un avec le lambda_min et un avec le lambda_1se
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.min)
+reg2 <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.1se)
+
+
+
+# prediction sur l'échantillon 
+
+pred<- predict(reg,x_test,type="class")
+pred2 <-predict(reg2,x_test,type="class")
+
+#resultats
+confusionMatrix(factor(pred),factor(y_test))
+
+confusionMatrix(factor(pred2),factor(y_test))
+
+#0.5167 contre 0.5127 -> le modèle avec le lambda_min est meilleur
+
+#on va essayer avec la selection de variables
+
+train <- data_qt2[train_ind, ]
+
+test <- data_qt2[-train_ind, ]
+
+y_train <- as.matrix(train[,11])
+y_test <- as.matrix(test[,11])
+x_train <- as.matrix(as.matrix(scale(train[,-11],center = T)))
+x_test <- as.matrix(as.matrix(scale(test[,-11],center = T)))
+
+
+# on effectue une cross validation sur un glmnet pour trouver la valeur optimale du paramètre lambda
+cv.reg <- cv.glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped")
+
+
+plot(cv.reg)
+#le graphique montre la cross-validation selon la valeur de lambda. La ligne verticale gauche indique que le log de la valeur optimale du lambda se trouve aux alentours de 6.5, c'est la valeur qui minimise l'erreur
+
+#meilleure valeur de lambda
+cv.reg$lambda.min
+
+#création de deux modèles : un avec le lambda_min et un avec le lambda_1se
+reg <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.min)
+reg2 <- glmnet(x_train,y_train,family="multinomial",alpha=0.5,standardize=FALSE,type.multinomial = "grouped",lambda = cv.reg$lambda.1se)
+
+
+
+# prediction sur l'échantillon 
+
+pred3<- predict(reg,x_test,type="class")
+pred4 <-predict(reg2,x_test,type="class")
+
+#resultats
+confusionMatrix(factor(pred),factor(y_test))
+
+confusionMatrix(factor(pred2),factor(y_test))
+#0.5125 contre 0.5101
+
+#Les meilleurs modèles sont ceux sans sélections de variables et avec le lambda_min
+
