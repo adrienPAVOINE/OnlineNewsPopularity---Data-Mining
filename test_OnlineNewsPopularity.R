@@ -949,3 +949,16 @@ RandomForest_News <- randomForest(popularity~.,data=data_qt, ntree = 200,
                                   mtry = 3, na.action = na.roughfix)
 
 print(RandomForest_News)
+
+x <- data_qt[,1:49]
+y <- data_qt[,50]
+
+# Random Search
+control <- trainControl(method="repeatedcv", number=5, repeats=3, search="random")
+set.seed(123)
+mtry <- 10
+metric <- "Accuracy"
+tunegrid <- expand.grid(.mtry=mtry)
+rf_random <- train(popularity~., data=data_qt, method="rf", metric=metric, trControl=control)
+print(rf_random)
+plot(rf_random) 
