@@ -216,10 +216,7 @@ ggplot(data=data[data$theme != NaN,], aes(x=theme, y=count, fill=popularity)) +
 #on ne garde que les données quantitative + la variable prédictive
 data_qt <- data[,-c(50,52:54)]
 
-#on créer un deuxième dataset avec une selection de features "stepwise"
-fit_full <- lm(shares ~ ., data = data[,-c(51:54)])
-select_fit<-step(fit_full, k=log(nrow(train)), direction="both")
-data_qt2 <- data[,c(labels(select_fit$coefficients)[-1],"popularity")]
+
 
 # découpage | 75% train et 25% test
 smp_size <- floor(0.75 * nrow(data))
@@ -231,6 +228,11 @@ train_ind <- sample(seq_len(nrow(data)), size = smp_size)
 train <- data_qt[train_ind, ]
 
 test <- data_qt[-train_ind, ]
+
+#on créer un deuxième dataset avec une selection de features "stepwise"
+fit_full <- lm(shares ~ ., data = data[,-c(51:54)])
+select_fit<-step(fit_full, k=log(nrow(train)), direction="both")
+data_qt2 <- data[,c(labels(select_fit$coefficients)[-1],"popularity")]
 
 # création des x/y train/test
 # on centre et on réduit les données pour mettre toutes les données quantitatives à la même échelle
