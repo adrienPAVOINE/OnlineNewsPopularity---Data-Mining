@@ -24,7 +24,8 @@ trainnnh2o <- train
 trainnnh2o$popularity <- as.factor(trainnnh2o$popularity )
 
 #Initialisation : nthreads = -1, utiliser tous les coeurs disponibles
-h2o.init(nthreads = -1)
+#h2o.init(nthreads = -1)
+h2o.init(nthreads = 1)
 
 #Transformation format reconnu par h2o
 h2oTrain <- as.h2o(trainnnh2o)
@@ -39,8 +40,8 @@ h2oTest <- as.h2o(testnnh2o)
 # - Validation croisee avec nfolds 
 # - On garde les prédictions de la validation croisee : keep_cross_validation_predictions
 # - Fonction d'activation similaire à sigmoid : Tanh
-pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(3),nfolds=5,
-                           keep_cross_validation_predictions=T)#,seed=100
+pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",seed=100,hidden=c(3),nfolds=5,
+                           keep_cross_validation_predictions=T)
 
 #Prédiction
 pred.pm.h20 <- h2o.predict(pm.h2o,newdata=h2oTest)
@@ -139,8 +140,8 @@ print(var_imp_bestnn)
 
 #---Tentative avec 2 couches
 
-nn_h2o_bis <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(40,10),nfolds=5,
-                           keep_cross_validation_predictions=T) #,seed=100
+nn_h2o_bis <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",seed=100,hidden=c(40,10),nfolds=5,
+                           keep_cross_validation_predictions=T) 
 
 #Prédiction
 pred_nn_h20_bis <- h2o.predict(nn_h2o_bis,newdata=h2oTest)
