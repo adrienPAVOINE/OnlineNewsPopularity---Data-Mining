@@ -39,8 +39,8 @@ h2oTest <- as.h2o(testnnh2o)
 # - Validation croisee avec nfolds 
 # - On garde les prédictions de la validation croisee : keep_cross_validation_predictions
 # - Fonction d'activation similaire à sigmoid : Tanh
-pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(3),seed=100,nfolds=5,
-                           keep_cross_validation_predictions=T)
+pm.h2o <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(3),nfolds=5,
+                           keep_cross_validation_predictions=T)#,seed=100
 
 #Prédiction
 pred.pm.h20 <- h2o.predict(pm.h2o,newdata=h2oTest)
@@ -52,8 +52,9 @@ h2o.confusionMatrix(pm.h2o,newdata=h2oTest)
 #évaluation
 mat_pred<-as.matrix(pred.pm.h20)[,"predict"]
 mat_pred<-as.factor(mat_pred)
-cm<-confusionMatrix(testnnh2o$popularity ,mat_pred )
+cm<-confusionMatrix(mat_pred,testnnh2o$popularity)
 print(cm)
+
 
 #Accuracy entre [0,509 ; 0,5288]  --> plutôt moyen 
 #[0,5121 ; 0,5318]  0,5219  
@@ -105,7 +106,7 @@ print(best_nn)
 pred_bestnn <- h2o.predict(best_nn,newdata=h2oTest)
 pred_bestnn_mat<-as.matrix(pred_bestnn)[,"predict"]
 pred_bestnn_mat<-as.factor(pred_bestnn_mat)
-cm_bestnn<-confusionMatrix(testnnh2o$popularity ,pred_bestnn_mat )
+cm_bestnn<-confusionMatrix(pred_bestnn_mat,testnnh2o$popularity)
 print(cm_bestnn)
 
 #Accuracy [0.5084, 0.5282]
@@ -134,8 +135,8 @@ print(var_imp_bestnn)
 
 #---Tentative avec 2 couches
 
-nn_h2o_bis <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(40,10),seed=100,nfolds=5,
-                           keep_cross_validation_predictions=T)
+nn_h2o_bis <- h2o.deeplearning(y="popularity",training_frame = h2oTrain,activation="Tanh",hidden=c(40,10),nfolds=5,
+                           keep_cross_validation_predictions=T) #,seed=100
 
 #Prédiction
 pred_nn_h20_bis <- h2o.predict(nn_h2o_bis,newdata=h2oTest)
@@ -144,7 +145,7 @@ pred_nn_h20_bis <- h2o.predict(nn_h2o_bis,newdata=h2oTest)
 
 mat_pred_bis<-as.matrix(pred_nn_h20_bis)[,"predict"]
 mat_pred_bis<-as.factor(mat_pred_bis)
-cmbis<-confusionMatrix(testnnh2o$popularity ,mat_pred_bis )
+cmbis<-confusionMatrix(mat_pred_bis,testnnh2o$popularity)
 print(cmbis)
 
 # Intervalle de confiance - Accuracy - Nombre de neuronnes des couches cachees
