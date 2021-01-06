@@ -8,19 +8,19 @@ direc<-dirname(rstudioapi::getSourceEditorContext()$path)
 #Assignation de l'environnement de travail 
 setwd(direc)
 
-#Récupération des données 
+#RÃ©cupÃ©ration des donnÃ©es 
 D <- read.table("breast-cancer-wisconsin.data",sep=",",na.strings = "?")
 
 
-#---Question 3 : Description et aperçu des données---
+#---Question 3 : Description et aperÃ§u des donnÃ©es---
 
 #Type de l'objet D
 class(D) 
 
-#Nombre d'observation, Nombre de variables, Liste des variables avec leur type + aperçu 
+#Nombre d'observation, Nombre de variables, Liste des variables avec leur type + aperÃ§u 
 str(D) 
 
-#Affichage des premières lignes du data frame
+#Affichage des premiÃ¨res lignes du data frame
 head(D) 
 
 #Statitiques basiques pour chaque variable 
@@ -32,19 +32,19 @@ summary(D)
 
 #---Question 4
 
-#Récuperation des observations comportant au moins une donnée manquante 
+#RÃ©cuperation des observations comportant au moins une donnÃ©e manquante 
 missval<-which(complete.cases(D)==F)
 
-#Affichage des observations comportant au moins une donnée manquante 
+#Affichage des observations comportant au moins une donnÃ©e manquante 
 print(missval)
 
-#Nombre d'observations comportant au moins une donnée manquante 
+#Nombre d'observations comportant au moins une donnÃ©e manquante 
 print(length(missval))
 
 
 #---Question 5 : 
 
-#On en conserve que observations sans données manquantes   
+#On en conserve que observations sans donnÃ©es manquantes   
 #D<-D[which(complete.cases(D)),]
 D<-D[-missval,]
 
@@ -75,17 +75,17 @@ malin<-which(y==1)
 
 #---Question 9 :
 
-#Indices de train =  Indices des 200 premières observations bégnines
+#Indices de train =  Indices des 200 premiÃ¨res observations bÃ©gnines
 train_set <- head(benin,200)
 
-#Ensemble train = 200 premières observations bégnines
+#Ensemble train = 200 premiÃ¨res observations bÃ©gnines
 Xtrain <- X[train_set,]
 ytrain<- y[train_set]
 
-#Indices de test =  Indices des observations bégnines restantes + indices des observations malignes 
+#Indices de test =  Indices des observations bÃ©gnines restantes + indices des observations malignes 
 test_set <- c(benin[201:444],malin)
 
-#Ensemble test =  Observations bégnines restantes + observations malignes 
+#Ensemble test =  Observations bÃ©gnines restantes + observations malignes 
 Xtest <- X[test_set,]
 ytest <-y[test_set]
 
@@ -97,17 +97,17 @@ ytest <-y[test_set]
 library(e1071)
 
 
-#---Question 11 : Estimation du modèle avec l'ensemble train
+#---Question 11 : Estimation du modÃ¨le avec l'ensemble train
 
 oc_svm_fit <- svm(Xtrain,ytrain,type='one-classification', gamma=1/2)
 
 
-#---Question 12 : prédiction des scores pour les observations de test
+#---Question 12 : prÃ©diction des scores pour les observations de test
 
 oc_svm_pred_test <- predict(oc_svm_fit,Xtest,decision.values = TRUE)
 
 
-#---Question 13
+#---Question 13 : rÃ©cupÃ©ration de lâ€™attribut "decision.values" de oc_svm_score_test. Inversement du signe des scores pour pouvoir ensuite obtenir une courbe ROC plus lisible.
 
 attr(oc_svm_pred_test," decision.values ")
 oc_svm_score_test = -as.numeric(attr(oc_svm_pred_test,"decision.values"))
@@ -121,7 +121,7 @@ library(ROCR)
 
 #---Question 15
 
-#Obtention des prédictions
+#Obtention des prÃ©dictions
 pred_oc_svm = prediction(oc_svm_score_test, y[test_set])
 
 #confrontation taux de faux positifs VS taux de vrais positifs 
