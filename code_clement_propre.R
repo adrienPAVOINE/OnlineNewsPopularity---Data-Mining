@@ -20,8 +20,8 @@ library(glmnet)
 #  import des données     ####################################################################
 ###########################
 
-#data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
-data_all <-read.csv("/Volumes/KINGSTON/M2/JAP/Projet_JAP/git/Data-Mining-Project/OnlineNewsPopularity.csv",sep=",",dec=".")
+data_all <-read.csv("C:/GITHUB/Data-Mining-Project/OnlineNewsPopularity/OnlineNewsPopularity.csv",sep=",",dec=".")
+#data_all <-read.csv("/Volumes/KINGSTON/M2/JAP/Projet_JAP/git/Data-Mining-Project/OnlineNewsPopularity.csv",sep=",",dec=".")
 
 
 
@@ -147,6 +147,7 @@ ggplotly(g)
 ###########################
 
 plot(x=data$n_tokens_title,y=data$shares)
+
 #répartition normale, le nombre optimal de mots semble centré autour de 10-11
 
 plot(x=data$n_tokens_content,y=data$shares)
