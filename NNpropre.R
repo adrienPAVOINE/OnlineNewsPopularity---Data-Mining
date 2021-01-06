@@ -54,6 +54,8 @@ mat_pred<-as.matrix(pred.pm.h20)[,"predict"]
 mat_pred<-as.factor(mat_pred)
 cm<-confusionMatrix(mat_pred,testnnh2o$popularity)
 print(cm)
+#Differentes metriques 
+print(cm$byClass)
 
 
 #Accuracy entre [0,509 ; 0,5288]  --> plutôt moyen 
@@ -108,6 +110,8 @@ pred_bestnn_mat<-as.matrix(pred_bestnn)[,"predict"]
 pred_bestnn_mat<-as.factor(pred_bestnn_mat)
 cm_bestnn<-confusionMatrix(pred_bestnn_mat,testnnh2o$popularity)
 print(cm_bestnn)
+#Differentes metriques 
+print(cm_bestnn$byClass)
 
 #Accuracy [0.5084, 0.5282]
 #Amelioration par rapport au premier essai ? --> très peu de not very popular en very et inversement
@@ -147,6 +151,9 @@ mat_pred_bis<-as.matrix(pred_nn_h20_bis)[,"predict"]
 mat_pred_bis<-as.factor(mat_pred_bis)
 cmbis<-confusionMatrix(mat_pred_bis,testnnh2o$popularity)
 print(cmbis)
+#Differentes metriques 
+print(cmbis$byClass)
+
 
 # Intervalle de confiance - Accuracy - Nombre de neuronnes des couches cachees
 # (0.5046, 0.5244) 0,5145  30,9
