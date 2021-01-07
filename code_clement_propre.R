@@ -270,10 +270,10 @@ pred<- predict(reg,x_test,type="class")
 pred2 <-predict(reg2,x_test,type="class")
 
 #resultats
-confusionMatrix(factor(pred),factor(y_test))
-
-confusionMatrix(factor(pred2),factor(y_test))
-
+conf<-confusionMatrix(factor(pred),factor(y_test))
+conf
+conf2<-confusionMatrix(factor(pred2),factor(y_test))
+conf2$byClass
 #0.5167 contre 0.5127 -> le modèle avec le lambda_min est meilleur
 
 #on va essayer avec la selection de variables
@@ -310,15 +310,71 @@ pred3<- predict(reg,x_test,type="class")
 pred4 <-predict(reg2,x_test,type="class")
 
 #resultats
-confusionMatrix(factor(pred),factor(y_test))
+conf3<-confusionMatrix(factor(pred3),factor(y_test))
+conf3
 
-confusionMatrix(factor(pred2),factor(y_test))
+conf4<-confusionMatrix(factor(pred4),factor(y_test))
+conf4
 #0.5125 contre 0.5101
 
 #Les meilleurs modèles sont ceux sans sélections de variables et avec le lambda_min
 
 
+#Graphique 
 
+#NFS -> no feature selection
+#FS -> feature selection
+#lmin -> lambda= lambda_min
+#l1se-> lambda= lambda_1se
+
+MEP_df_comp <- function(df){
+  lcol<- colnames(df)
+  lrow <- rownames(df)
+  df_comp<-matrix(data = NA, nrow = 12, ncol = 3)
+  df_comp[,1]<-c(rep("NFS_lmin",3),rep("NFS_l1se",3),rep("FS_lmin",3),rep("FS_l1se",3))
+  df_comp[,2]<-rep(c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular"),4)
+  for(i in 1:nrow(df_comp)){
+    df_comp[i,3]<- df[df_comp[i,1],df_comp[i,2]]
+  }
+  df_comp[,3]<- as.numeric(df_comp[,3])
+  colnames(df_comp)<- c("model","class","value")
+  df_comp<- as.data.frame(df_comp)
+  return (df_comp)
+}
+
+
+
+Precision_comp<-as.data.frame(rbind(conf$byClass[,5],conf2$byClass[,5],conf3$byClass[,5],conf4$byClass[,5]))
+rownames(Precision_comp)<- c("NFS_lmin","NFS_l1se","FS_lmin","FS_l1se")
+Precision_comp <- MEP_df_comp(Precision_comp)
+Precision_comp
+
+
+Recall_comp <- as.data.frame(rbind(conf$byClass[,6],conf2$byClass[,6],conf3$byClass[,6],conf4$byClass[,6]))
+rownames(Recall_comp)<- c("NFS_lmin","NFS_l1se","FS_lmin","FS_l1se")
+Recall_comp <- MEP_df_comp(Recall_comp)
+Recall_comp
+
+Accuracy_comp<-as.data.frame(rbind(conf$overall[1],conf2$overall[1],conf3$overall[1],conf4$overall[1]))
+Accuracy_comp$model<- c("NFS_lmin","NFS_l1se","FS_lmin","FS_l1se")
+Accuracy_comp
+
+par(mfrow=c(1,1))
+
+graph_pre <- ggplot(data=Precision_comp, aes(x=model, y=value, fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Precision comparison")+
+  theme_minimal()
+
+graph_rec <- ggplot(data=Recall_comp, aes(x=model, y=value, fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Recall comparison")+
+  theme_minimal()
+
+graph_acc <- ggplot(data=Accuracy_comp, aes(x=model, y=Accuracy)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Accuracy comparison")+ theme_minimal()
+
+graph_acc
+graph_pre
+graph_rec
 #########################################
 #        RANDOM FOREST                  ####################################################################
 #########################################
