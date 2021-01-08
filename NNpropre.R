@@ -36,7 +36,7 @@ testnnh2o$popularity <- as.factor(testnnh2o$popularity )
 
 h2oTest <- as.h2o(testnnh2o)
 
-#Modélisation : 1 cocuhe cachee avec 3 neuronnes
+#Modélisation : 1 couche cachee avec 3 neuronnes
 # - Validation croisee avec nfolds 
 # - On garde les prédictions de la validation croisee : keep_cross_validation_predictions
 # - Fonction d'activation similaire à sigmoid : Tanh
@@ -59,8 +59,8 @@ print(cm)
 print(cm$byClass)
 
 
-#Accuracy entre [0,509 ; 0,5288]  --> plutôt moyen 
-#[0,5121 ; 0,5318]  0,5219  
+#Accuracy  de 0,5182 entre [0,5083 ; 0,5281]  --> plutôt moyen 
+ 
 #Beaucoup de prédictions en "Moderatly popular" 
 
 
@@ -74,7 +74,7 @@ hyper_params <- list(
 
 #https://docs.h2o.ai/h2o-tutorials/latest-stable/tutorials/deeplearning/index.html
 ## Stop once the top 5 models are within 1% of each other (i.e., the windowed average varies less than 1%)
-search_criteria = list(strategy = "RandomDiscrete", max_runtime_secs = 360, max_models = 100, seed=1234567, stopping_rounds=5, stopping_tolerance=1e-2)
+search_criteria = list(strategy = "RandomDiscrete", max_runtime_secs = 360, max_models = 200, seed=1234567, stopping_rounds=5, stopping_tolerance=1e-2)
 dl_random_grid <- h2o.grid(
   algorithm="deeplearning",
   grid_id = "dl_grid_random",
@@ -102,7 +102,7 @@ print(grid)
 best_nn <- h2o.getModel(grid@model_ids[[1]]) ## model with lowest logloss
 print(best_nn)
 #on voit qu'il reste quand même un taux d'erreur assez important pour Not very et very popular (sur le train)
-# couche cacchee: 9 neuronnes et Tanh, sortie : Softmax
+# couche cacchee: 8 neuronnes et Tanh, sortie : Softmax
 
 #Predictions avec le meilleur modele
 
@@ -114,8 +114,8 @@ print(cm_bestnn)
 #Differentes metriques 
 print(cm_bestnn$byClass)
 
-#Accuracy [0.5084, 0.5282]
-#Amelioration par rapport au premier essai ? --> très peu de not very popular en very et inversement
+#Accuracy 0,5108 [0.501, 0.5207]
+#Pas mieux que premier essai  MAIS idee de la focntion d'activation --> très peu de not very popular en very et inversement
 
 
 #On regarde l'importance des variables 
@@ -162,8 +162,7 @@ print(cmbis$byClass)
 # (0.5084, 0.5282) 0.5183  36,9
 #  (0.511, 0.5308) 0.5209     40,9
 #  (0.5114, 0.5312) 0.5213    40,15
-#  (0.5152, 0.5349) 0.5251    40,10
-#  (0.5132, 0.5329) 0.5231    41,10
+#  (0.5152, 0.5349) 0.5214    40,10
 #(0.5091, 0.5289)  0;519  40,20
 #(0.5108, 0.5306)  0.5207     45,10
 # (0.5074, 0.5272) 0.5173  27,18,9
@@ -202,7 +201,73 @@ print(cmbis$byClass)
 # h2oTrain[,"popularity"] <- as.factor(h2oTrain[,"popularity"])
 # 
 
+#Graphique 
 
+#NFS -> no feature selection
+#FS -> feature selection
+#lmin -> lambda= lambda_min
+#l1se-> lambda= lambda_1se
+
+MEP_df_comp <- function(df){
+  #lcol<- colnames(df)
+  #lrow <- rownames(df)
+  #nrow = nb modele *3 classes 
+  df_comp<-matrix(data = NA, nrow = 9, ncol = 3)
+  df_comp<-as.data.frame(df_comp)
+  df_comp[,1]<-c(rep("NN_1c_3n",3),rep("NN_1c_8N",3),rep("NN_2c_40+10N",3))
+  df_comp[,2]<-rep(c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular"),3)
+  for(i in 1:nrow(df_comp)){
+    df_comp[i,3]<- df[df_comp[i,1],df_comp[i,2]]
+  }
+  #df_comp[,3]<- as.numeric(df_comp[,3])
+  colnames(df_comp)<- c("model","class","value")
+  #df_comp<- as.data.frame(df_comp)
+ # df_comp<-as.data.frame(cbind(df_comp[,1],df_comp[,2],df_comp[,3]))
+ # df_comp[,"value"]<- as.numeric(df_comp[,"value"])
+  return (df_comp)
+}
+
+
+Precision_compNN<-as.data.frame(rbind(cm$byClass[,5],cm_bestnn$byClass[,5],cmbis$byClass[,5]))
+rownames(Precision_compNN)<- c("NN_1c_3n","NN_1c_8N","NN_2c_40+10N")
+Precision_compNN <- MEP_df_comp(Precision_compNN)
+
+
+Recall_compNN <- as.data.frame(rbind(cm$byClass[,6],cm_bestnn$byClass[,6],cmbis$byClass[,6]))
+rownames(Recall_compNN)<- c("NN_1c_3n","NN_1c_8N","NN_2c_40+10N")
+df<-Recall_compNN
+Recall_compNN <- MEP_df_comp(Recall_compNN)
+Recall_compNN
+
+Accuracy_compNN<-as.data.frame(rbind(cm$overall[1],cm_bestnn$overall[1],cmbis$overall[1]))
+Accuracy_compNN$model<- c("NN_1c_3n","NN_1c_8N","NN_2c_40+10N")
+Accuracy_compNN
+
+par(mfrow=c(1,1))
+
+graph_pre <- ggplot(data=Precision_compNN, aes(x=model, y=value, fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Precision comparison")+
+  theme_minimal()
+
+graph_rec <- ggplot(data=Recall_compNN, aes(x=model, y=as.numeric(value), fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Recall comparison")+
+  theme_minimal()
+
+graph_acc <- ggplot(data=Accuracy_compNN, aes(x=model, y=Accuracy)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Accuracy comparison")+ theme_minimal()
+
+graph_acc
+graph_pre
+graph_rec
 
 #arrêt de H2o
 h2o.shutdown()
+
+
+
+#------
+#(moderate, not very, very)
+precisionNN<-c(0.5418264,0.4695122,0.4756098)
+rappelNN<-c(0.7598088,0.3737864,0.1774194)
+accuNN<-c(0.5214408 )
+
