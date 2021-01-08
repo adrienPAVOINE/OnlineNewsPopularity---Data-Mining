@@ -148,7 +148,7 @@ kernel
 mat_trainset<-as.matrix(X[train_set ,])
 Ktrain=kernelMatrix(kernel ,x= mat_trainset)
 
-n<- nrow(Ktrain )  #pas sur
+n<- nrow(Ktrain )  
 
 
 #---Question 18 
