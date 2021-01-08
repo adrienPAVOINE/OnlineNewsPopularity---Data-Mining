@@ -208,35 +208,28 @@ print(cmbis$byClass)
 #lmin -> lambda= lambda_min
 #l1se-> lambda= lambda_1se
 
-MEP_df_comp <- function(df){
-  #lcol<- colnames(df)
-  #lrow <- rownames(df)
-  #nrow = nb modele *3 classes 
-  df_comp<-matrix(data = NA, nrow = 9, ncol = 3)
+MEP_df_comp <- function(df,nmod){
+  df_comp<-matrix(data = NA, nrow = nmod, ncol = 3)
   df_comp<-as.data.frame(df_comp)
   df_comp[,1]<-c(rep("NN_1c_3n",3),rep("NN_1c_8N",3),rep("NN_2c_40+10N",3))
   df_comp[,2]<-rep(c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular"),3)
   for(i in 1:nrow(df_comp)){
     df_comp[i,3]<- df[df_comp[i,1],df_comp[i,2]]
   }
-  #df_comp[,3]<- as.numeric(df_comp[,3])
   colnames(df_comp)<- c("model","class","value")
-  #df_comp<- as.data.frame(df_comp)
- # df_comp<-as.data.frame(cbind(df_comp[,1],df_comp[,2],df_comp[,3]))
- # df_comp[,"value"]<- as.numeric(df_comp[,"value"])
   return (df_comp)
 }
 
 
 Precision_compNN<-as.data.frame(rbind(cm$byClass[,5],cm_bestnn$byClass[,5],cmbis$byClass[,5]))
 rownames(Precision_compNN)<- c("NN_1c_3n","NN_1c_8N","NN_2c_40+10N")
-Precision_compNN <- MEP_df_comp(Precision_compNN)
+Precision_compNN <- MEP_df_comp(Precision_compNN,9)
 
 
 Recall_compNN <- as.data.frame(rbind(cm$byClass[,6],cm_bestnn$byClass[,6],cmbis$byClass[,6]))
 rownames(Recall_compNN)<- c("NN_1c_3n","NN_1c_8N","NN_2c_40+10N")
 df<-Recall_compNN
-Recall_compNN <- MEP_df_comp(Recall_compNN)
+Recall_compNN <- MEP_df_comp(Recall_compNN,9)
 Recall_compNN
 
 Accuracy_compNN<-as.data.frame(rbind(cm$overall[1],cm_bestnn$overall[1],cmbis$overall[1]))
