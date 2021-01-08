@@ -752,10 +752,10 @@ set.seed(100)
 #Récuperation de la variable cible sous fomre de facteurs
 popu_fact <- as.factor(train[,'popularity'])
 
-#Réseau avec 1 couche cachee (skip) de 3 neuronnes (size) --> ne converge pas 
+#Réseau avec 1 couche cachee (skip) de 3 neurones (size) --> ne converge pas 
 #ps.nnet <- nnet(popu_fact ~ ., data = x_train, skip = F, size = 3,na.action = na.omit, maxit=300 )
 
-#Réseau avec 1 couche cachee (skip) de 10 neuronnes (size)
+#Réseau avec 1 couche cachee (skip) de 10 neurones (size)
 ps.nnet <- nnet(popu_fact ~ ., data = x_train, skip = F, size = 10,na.action = na.omit, maxit=350 )
 
 
@@ -780,7 +780,7 @@ testnnh2o$popularity <- as.factor(testnnh2o$popularity )
 
 h2oTest <- as.h2o(testnnh2o)
 
-#Modélisation : 1 couche cachee avec 3 neuronnes
+#Modélisation : 1 couche cachee avec 3 neurones
 # - Validation croisee avec nfolds 
 # - On garde les prédictions de la validation croisee : keep_cross_validation_predictions
 # - Fonction d'activation similaire à sigmoid : Tanh
@@ -810,7 +810,7 @@ print(cm$byClass)
 
 #---Recherche d'hyper parametres aléatoire 
 
-#On veut tester plusieurs fonctions d'activation et faire varier le nombre de neuronnes de la couche cachée 
+#On veut tester plusieurs fonctions d'activation et faire varier le nombre de neurones de la couche cachée 
 hyper_params <- list(
   activation=c("Rectifier","Tanh","Maxout","RectifierWithDropout","TanhWithDropout","MaxoutWithDropout"),
   hidden=list(2,3,4,5,6,7,8,9,10,15,20,25,30)
@@ -846,7 +846,7 @@ print(grid)
 best_nn <- h2o.getModel(grid@model_ids[[1]]) ## model with lowest logloss
 print(best_nn)
 #on voit qu'il reste quand même un taux d'erreur assez important pour Not very et very popular (sur le train)
-# couche cacchee: 8 neuronnes et Tanh, sortie : Softmax
+# couche cacchee: 8 neurones et Tanh, sortie : Softmax
 
 #Predictions avec le meilleur modele
 
@@ -900,7 +900,7 @@ print(cmbis)
 print(cmbis$byClass)
 
 
-# Intervalle de confiance - Accuracy - Nombre de neuronnes des couches cachees
+# Intervalle de confiance - Accuracy - Nombre de neurones des couches cachees
 # (0.5046, 0.5244) 0,5145  30,9
 # 0,5078, 0,5276  0,5177  27,9
 # (0.5084, 0.5282) 0.5183  36,9
@@ -1033,3 +1033,77 @@ pred5
 conf4<-confusionMatrix(factor(pred5),factor(data_qt[,'popularity']))
 
 conf4
+
+
+#########################################################################################
+#graphique de comparaison des modèles
+#########################################################################################
+#Implémentation sur différents ordis
+#Pour éviter de perdre du temps d'éxecution, sauvegarde des résultats dans des variables
+precisonSVM <- c(0.5073418, 0.5714286,0.4827586)
+recall_svm <- c(0.997809201,0.001618123,0.005789909)
+accuSVM <-c(0.5073151)
+
+precisionNN<-c(0.5418264,0.4695122,0.4756098)
+rappelNN<-c(0.7598088,0.3737864,0.1774194)
+accuNN<-c(0.5214408 )
+
+
+precision_rf <- c(0.5311715,0.5339939,0.4886635)
+recall_rf <- c(0.8637224,0.1953676,0.1701111)
+accuracy_rf <- c(0.5278)
+
+precision_glmnet <- c(0.5229607,0.4809689,0.4781850)
+recall_glmnet <- c(0.8822944,0.1686893,0.1133168)
+accuracy_glmnet <- c(0.5167)
+
+
+MEP_df_com <- function(df){
+  #lcol<- colnames(df)
+  #lrow <- rownames(df)
+  #nrow = nb modele *3 classes
+  df_comp<-matrix(data = NA, nrow = 12, ncol = 3)
+  df_comp<-as.data.frame(df_comp)
+  df_comp[,1]<-c(rep("NN",3),rep("Random forest",3),rep("GLMNET",3),rep("SVM tuné radial",3))
+  df_comp[,2]<-rep(c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular"),4)
+  for(i in 1:nrow(df_comp)){
+    df_comp[i,3]<- df[df_comp[i,1],df_comp[i,2]]
+  }
+  df_comp[,3]<- as.numeric(df_comp[,3])
+  colnames(df_comp)<- c("model","class","value")
+  #df_comp<- as.data.frame(df_comp)
+  # df_comp<-as.data.frame(cbind(df_comp[,1],df_comp[,2],df_comp[,3]))
+  # df_comp[,"value"]<- as.numeric(df_comp[,"value"])
+  return (df_comp)
+}
+
+Precision_com<-as.data.frame(rbind(precisionNN,precision_rf,precision_glmnet,precisonSVM))
+colnames(Precision_com)<- c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular")
+rownames(Precision_com)<- c("NN","Random forest","GLMNET","SVM tuné radial")
+Precision_com <- MEP_df_com(Precision_com)
+Precision_com
+graph_pre <- ggplot(data=Precision_com, aes(x=model, y=value, fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Precision comparison")+
+  theme_minimal()
+
+
+
+recall_com<-as.data.frame(rbind(rappelNN,recall_rf,recall_glmnet,recall_svm))
+colnames(recall_com)<- c("Class: Moderatly popular","Class: Not very Popular","Class: Very popular")
+rownames(recall_com)<- c("NN","Random forest","GLMNET","SVM tuné radial")
+recall_com <- MEP_df_com(recall_com)
+recall_com
+graph_rec <- ggplot(data=recall_com, aes(x=model, y=value, fill=class)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Recall comparison")+
+  theme_minimal()
+
+
+acc_com<-as.data.frame(rbind(accuNN,accuracy_rf,accuracy_glmnet,accuSVM))
+rownames(acc_com)<- c("NN","Random forest","GLMNET","SVM tuné radial")
+colnames(acc_com)<- c("Accuracy")
+acc_com
+graph_acc <- ggplot(data=acc_com, aes(x=c("NN","Random forest","GLMNET","SVM tuné radial"), y=Accuracy)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+ labs(title="Accuracy comparison")+ theme_minimal()
+
+
+
