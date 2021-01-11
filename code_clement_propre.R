@@ -1030,6 +1030,16 @@ plot(rf_random)
 pred5 <- RandomForest_News$predicted
 pred5
 
-conf4<-confusionMatrix(factor(pred5),factor(data_qt[,'popularity']))
+conf5<-confusionMatrix(factor(pred5),factor(data_qt[,'popularity']))
 
-conf4
+conf5$byClass
+
+conf
+
+precision_rf <- c(0.5311715,0.5339939,0.4886635)
+recall_rf <- c(0.8637224,0.1953676,0.1701111)
+accuracy_rf <- c(0.5278)
+
+precision_rf <- c(0.5229607,0.4809689,0.4781850)
+recall_rf <- c(0.8822944,0.1686893,0.1133168)
+accuracy_rf <- c(0.5167)
